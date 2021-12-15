@@ -1,0 +1,15 @@
+name: Emilia Hiring Challenge
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - uses: abatilo/actions-poetry@v2.1.3
+      - name: Run tests
+        run: |
+          poetry install
+          poetry run pytest -m "not bonus"

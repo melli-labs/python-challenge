@@ -1,0 +1,35 @@
+hello = """
+👩: Hello 👋! I am Emilia. Welcome and thank you for accepting this challenge! You can find your first task at '/task1'. There are four tasks in total, the last one being optional if you want to impress us. If you need my help for a given task, you can find me for example at '/task1/help'.
+"""
+
+[task1]
+info = """
+👩: The first step of a meaningful conversation is a friendly greeting. Therefore, your first task will be to improve our greeting functionality at `/task1/greet/{name}`. Currently, this route is only available in English 🇬🇧. But not all of our customers speak English. Could you add a query parameter `language` to also support German 🇩🇪 and Spanish 🇪🇸? Valid values should be `de`, `en`, and `es`! In case the user passes a different language, we should respond, that we don't speak it. Just go to `emilia.py` and implement the requested changes. The exact requirements for all tasks are defined by the test in `test_emilia.py`. Run 'pytest -xsk task1' to verify you solved this task correctly ✅.
+"""
+help = """
+👩: In case you are not familiar with FastAPI, just check the docs at https://fastapi.tiangolo.com/. The first task shouldn't be too hard! We believe in you! 💪
+"""
+
+[task2]
+info = """
+👩: Sometimes best practices can be annoying. Python uses 'snake_case' 🐍 for variables names, but from a typical API you might expect keys in 'camelCase' 🐪. Can you write a 'camelize' function that transforms a snake_case-string to a camelCase-string? The boilerplate code is already there! This function will be exposed at `/task2/camelize` and expects a JSON object as payload.
+"""
+help = """
+👩: Use curl or something like the Insomnia REST client to create a POST request. Secret tip 🤫: You can use the FastAPI's Swagger UI at '/docs' to call the API directly from the browser.
+"""
+
+[task3]
+info = """
+👩: Our goal is to increase the quality of life of elderly people by encouraging them to have more contact with other people through a rich and varied daily schedule ✅. Therefore we must understand the intentions of our users. For example, a user might want to call a family member or wants to set a reminder to have some tea with an old friend. We have different handlers to respond to the various user actions. Unfortunately, our code is broken 🤕 as it uses a random handler for every incoming action. On top of that our responses are very rude 🖕 at the moment. Therefore, the first part of your task is to implement an intent recognition mechanism, which forwards the incoming actions to the right action handler. Afterward, you need to implement these action handlers. Make sure the responses are friendlier than they are now 🤗. As always the exact requirements are set by the tests in `/test_emilia.py`. The number of tests is slightly higher than in the previous tasks, but don't let that discourage you!
+"""
+help = """
+👩: This task is somewhat of a green field. How exactly to solve it is up to you. You could use simple string comparisons or a regex pattern. Maybe you want to go even further and implement some grammar rules 📜. If you like to go completely crazy, you might use an NLP model 🤖. I have heard they have some good ones at https://huggingface.co 🤗. Surprise us ✨!
+"""
+
+[task4]
+info = """
+(Bonus) 👩: In our last task we have two users Stefan and Felix. Both of them have a secret stored in our database 🤫. Currently, our application is not very secure! An imposter 🥸 could easily switch out the `username` field to pretend to be somebody else. Let's change that! Ideally, a secret should be accessible to the user 👤 it belongs to. Therefore if a user 👤 requests a secret from `/users/{username}/secret` route, we should verify that the user 👤 is logged in and that the `username` matches. For the login process, we created some boilerplate code and a (not fully working) login route at `/task4/token`. Your task is to implement the user verification logic and to make sure to return the right HTTP status in case a user 👤 is not authenticated or authorized. As always, check if you solved the task correctly by running 'pytest -xsk task4'. Have fun, you're almost there 🏁!
+"""
+help = """
+👩: If you don't know much about authentication, don't worry too much. Here is how it works on a basic level: A user sends their password to the `/task4/token` route. If the username and password are correct, we reply with a token 🪙, which contains the username as payload and is signed with our `SECRET_KEY` 🔐. For every subsequent request 🤙 the user 👤 will send this token 🪙 as part of the request header. We can verify that the token 🪙 belongs to the user because we signed it!
+"""
