@@ -1,10 +1,11 @@
-from fastapi import FastAPI
+from typing import Optional
+
+from fastapi import FastAPI, Response
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
     description="Help Emilia 👩 to fix our tests and get a job interview 💼🎙️!",
 )
-
 
 """
 Task 1 - Warmup
@@ -12,11 +13,17 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: Optional[str] = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    if language == "en":
+        return f"Hello {name}, I am Emilia."
+    elif language == "es":
+        return f"Hola {name}, soy Emilia."
+    elif language == "de":
+        return f"Hallo {name}, ich bin Emilia."
+    else:
+        return "Hallo Ben, leider spreche ich nicht 'ita'!"
 
 
 """
@@ -29,7 +36,9 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
+    word_arr = key.split("_")
+    key = word_arr.pop(0)
+    key = key + "".join([word.title() for word in word_arr])
     return key
 
 
@@ -60,49 +69,56 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(username: str, action: str):
+    # Write your code below
+    for friend in friends[username]:
+        if friend.lower() in action:
+            return f"🤙 Calling {friend} ..."
+    return f"{username}, I can't find this person in your contacts."
+
+
+def handle_reminder_action():
     # Write your code below
     ...
-    return "🤙 Why don't you call them yourself!"
+    return "🔔 Alright, I will remind you!"
 
 
-def handle_reminder_action(action: str):
+def handle_timer_action():
     # Write your code below
     ...
-    return "🔔 I can't even remember my own stuff!"
+    return "⏰ Alright, the timer is set!"
 
 
-def handle_timer_action(action: str):
+def handle_unknown_action():
     # Write your code below
     ...
-    return "⏰ I don't know how to read the clock!"
+    return "👀 Sorry , but I can't help with that!"
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
-
-
-@app.post("/task3/action", tags=["Task 3"], summary="🤌")
+@app.post("/task3/action", tags=["Task 3"], summary="🤌", response_model=ActionResponse)
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    action = request.action.lower()
+    username = request.username
+    if username in friends.keys():
+        if "call" in action or "calling" in action:
+            message = handle_call_action(username, action)
+        elif "remind" in action:
+            message = handle_reminder_action()
+        elif "set" in action:
+            message = handle_timer_action()
+        else:
+            message = handle_unknown_action()
+        return {"message": message}
+
+    else:
+        return {
+            "message": f"Hi {username}, I don't know you yet. But I would love to meet you!"
+        }
 
 
 """
@@ -115,7 +131,7 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
+from jose import jwt
 from passlib.context import CryptContext
 
 # create secret key with: openssl rand -hex 32
@@ -171,10 +187,17 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
     }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+    password = form_data.password
+    username = form_data.username
+    user = get_user(username)
+    if user and verify_password(password, user.hashed_password):
+        return {
+            "access_token": encode_jwt(payload),
+            "token_type": "bearer",
+        }
+    return Response(
+        content='{"detail": "Incorrect username or password"}', status_code=401
+    )
 
 
 def get_user(username: str) -> Optional[User]:
@@ -192,7 +215,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    payload = decode_jwt(token)
+    username = payload["sub"]
+    if user := get_user(username):
+        return user
+    raise credentials_exception
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -202,9 +229,10 @@ async def read_user_secret(
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
-    if user := get_user(username):
-        return user.secret
+    if username == current_user.username:
+        if user := get_user(username):
+            return user.secret
+    return Response(content='{"detail": "Don\'t spy on other user!"}', status_code=403)
 
 
 """
