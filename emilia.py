@@ -1,4 +1,3 @@
-from os import EX_PROTOCOL
 from fastapi import FastAPI
 from typing import Optional
 
