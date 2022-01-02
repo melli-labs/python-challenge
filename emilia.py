@@ -80,7 +80,8 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def does_user_exist(function: Callable):
+def does_user_exist(function: Callable[[ActionRequest], ActionResponse]
+                    ) -> Callable[[ActionRequest], ActionResponse]:
     @wraps(function)
     def wrapper(*args,**kwargs):
         user = kwargs.get("request").username
@@ -92,7 +93,7 @@ def does_user_exist(function: Callable):
     return wrapper
 
 
-def handle_call_action(request: ActionRequest):
+def handle_call_action(request: ActionRequest) -> ActionResponse:
     # Write your code below
     user = request.username
     mapping = request.action.maketrans(dict.fromkeys(string.punctuation))
@@ -103,24 +104,24 @@ def handle_call_action(request: ActionRequest):
     return ActionResponse(message=f"{user}, I can't find this person in your contacts.")
 
 
-def handle_reminder_action(_: ActionRequest):
+def handle_reminder_action(_: ActionRequest) -> ActionResponse:
     # Write your code below
     return ActionResponse(message="🔔 Alright, I will remind you!")
 
 
-def handle_timer_action(_: ActionRequest):
+def handle_timer_action(_: ActionRequest) -> ActionResponse:
     # Write your code below
     return ActionResponse(message="⏰ Alright, the timer is set!")
 
 
-def handle_unknown_action(_: ActionRequest):
+def handle_unknown_action(_: ActionRequest) -> ActionResponse:
     # Write your code below
     return ActionResponse(message="👀 Sorry , but I can't help with that!")
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 @does_user_exist
-def task3_action(request: ActionRequest):
+def task3_action(request: ActionRequest) -> ActionResponse:
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
@@ -190,7 +191,7 @@ class Token(BaseModel):
 
 
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict[str, str]:
     """Allows registered users to obtain a bearer token."""
     # fixme 🔨, at the moment we allow everybody to obtain a token
     # this is probably not very secure 🛡️ ...
@@ -239,7 +240,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
     username: str, current_user: User = Depends(get_current_user)
-):
+) -> str:
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
