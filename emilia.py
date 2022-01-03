@@ -39,8 +39,19 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    newkey = ""
+    pointer = 0
+    for _ in key:
+        if pointer >= len(key):
+            break
+        if key[pointer] == '_':
+            newkey += key[pointer+1].upper()
+            pointer += 2
+        else:
+            newkey += key[pointer]
+            pointer += 1
+            
+    return newkey
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
