@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from collections import defaultdict
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -12,11 +13,20 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str='de') -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    langdict = {
+        "en": f"Hello {name}, I am Emilia.",
+        "de": f"Hallo {name}, ich bin Emilia.",
+        "es": f"Hola {name}, soy Emilia.",
+    }
+    langdict = defaultdict(
+        lambda : f"Hallo {name}, leider spreche ich nicht '{language}'!", 
+        langdict
+    )
+
+    return langdict[language]
 
 
 """
