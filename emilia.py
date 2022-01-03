@@ -81,28 +81,30 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(action: ActionRequest):
+    name = action.username
+
+    for friend in friends[name]:
+        if friend in action.action:
+            return ActionResponse(message=f"🤙 Calling {friend} ...")
+
+    return ActionResponse(message=f"{name}, I can't find this person in your contacts.")
+    
+
+def handle_reminder_action(action: ActionRequest):
+    return ActionResponse(message="🔔 Alright, I will remind you!")
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_timer_action(action: ActionRequest):
+    return ActionResponse(message="⏰ Alright, the timer is set!")
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_unknown_action(action: ActionRequest):
+    return ActionResponse(message="👀 Sorry , but I can't help with that!")
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unkwon_user(action: ActionRequest):
+    return ActionResponse(message=f"Hi {action.username}, I don't know you yet. But I would love to meet you!")
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -111,20 +113,20 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    if not request.username in friends.keys():
+        return handle_unkwon_user(request)
 
+    handler = {
+        "call": handle_call_action,
+        "remind": handle_reminder_action,
+        "timer": handle_timer_action,
+    }
+    handler = defaultdict(lambda: handle_unknown_action, handler)
+    actionset = set(request.action.lower().split()).intersection(handler.keys())
+    action = actionset.pop() if actionset else False
+
+    return handler[action](request)
 
 """
 Task 4 - Security
