@@ -189,7 +189,14 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
+    user = get_user(form_data.username)
+
+    if not user:
+        raise HTTPException(401, detail="Incorrect username or password")
+
+    if not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(401, detail="Incorrect username or password")
+
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
@@ -215,7 +222,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    payload = decode_jwt(token)
+    name = payload['sub']
+    user = get_user(name)
+
+    if not user:
+        raise credentials_exception
+    
+    return user
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -225,7 +239,9 @@ async def read_user_secret(
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
+    if current_user.username != username:
+        raise HTTPException(403, detail="Don't spy on other user!")
+
     if user := get_user(username):
         return user.secret
 
