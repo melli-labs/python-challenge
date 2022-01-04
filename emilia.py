@@ -12,11 +12,18 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    supported_languages = {
+        "de": f"Hallo {name}, ich bin Emilia.",
+        "en": f"Hello {name}, I am Emilia.",
+        "es": f"Hola {name}, soy Emilia.",
+    }
+    if language not in (supported_languages.keys()):
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
+
+    return supported_languages[language]
 
 
 """
@@ -29,8 +36,19 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    found = False
+    result = []
+    for i, v in enumerate(key):
+        if v == "_":
+            found = True
+            continue
+        else:
+            if found:
+                result.append(v.upper())
+                found = False
+            else:
+                result.append(v)
+    return "".join(result)
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -60,28 +78,37 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(user: str, action: str):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    for friend in friends[user]:
+        if friend in action:
+            return {"message": f"🤙 Calling {friend} ..."}
+    return {"message": f"{user}, I can't find this person in your contacts."}
+    # return "🤙 Why don't you call them yourself!"
 
 
-def handle_reminder_action(action: str):
+def handle_reminder_action(user: str, action: str):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    return {"message": "🔔 Alright, I will remind you!"}
+    # return "🔔 I can't even remember my own stuff!"
 
 
-def handle_timer_action(action: str):
+def handle_timer_action(user: str, action: str):
     # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    return {"message": "⏰ Alright, the timer is set!"}
+    # return "⏰ I don't know how to read the clock!"
 
 
-def handle_unknown_action(action: str):
+def handle_unknown_action(user: str, action: str):
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    return {"message": "👀 Sorry , but I can't help with that!"}
+    # return "🤬 #$!@"
+
+
+def handle_unknown_user_action(user: str, action: str):
+    return {
+        "message": f"Hi {user}, I don't know you yet. But I would love to meet you!"
+    }
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -90,19 +117,20 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
+    action = request.action
+    user = request.username
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    handler = handle_unknown_action
+    if "call" in action.lower():
+        handler = handle_call_action
+    if "remind" in action.lower():
+        handler = handle_reminder_action
+    if "timer" in action.lower():
+        handler = handle_timer_action
+    if user not in friends.keys():
+        handler = handle_unknown_user_action
+
+    return handler(user, action)
 
 
 """
@@ -166,7 +194,15 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
+    user = get_user(form_data.username)
+    if not user or user.username not in fake_users_db.keys():
+        raise HTTPException(401, detail="Incorrect username or password")
+
+    # password = form_data.password
+    # print(f"\n{password}, {user_obj.hashed_password}, {verify_password(password, user_obj.hashed_password)}")
+    if not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(401, detail="Incorrect username or password")
+
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
@@ -192,7 +228,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    raw_token_payload = decode_jwt(token)
+    username = raw_token_payload["sub"]
+    user = get_user(username)
+    if not user:
+        raise credentials_exception
+
+    return user
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -202,7 +244,10 @@ async def read_user_secret(
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
+
+    if not username == current_user.username:
+        raise HTTPException(403, detail="Don't spy on other user!")
+
     if user := get_user(username):
         return user.secret
 
