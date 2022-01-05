@@ -70,49 +70,59 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(action_request: ActionRequest):
+    action = action_request.action.lower()
+
+    for friend in friends[action_request.username]:
+        if friend.lower() in action:
+            message = f"🤙 Calling {friend} ..."
+            break
+    else:
+        message = f"{action_request.username}, I can't find this person in your contacts."
+
+    return ActionResponse(message=message)
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action(action_request: ActionRequest):
+    message = "🔔 Alright, I will remind you!"
+    return ActionResponse(message=message)
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action(action_request: ActionRequest):
+    message = "⏰ Alright, the timer is set!"
+    return ActionResponse(message=message)
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action(action_request: ActionRequest):
+    message = "👀 Sorry , but I can't help with that!"
+    return ActionResponse(message=message)
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
+    action_handlers = {
+        'call': handle_call_action,
+        'remind': handle_reminder_action,
+        'timer': handle_timer_action,
+    }
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    # Handle Unknown users' requests
+    if request.username not in friends:
+        message = f"Hi {request.username}, I don't know you yet. But I would love to meet you!"
+        return ActionResponse(message=message)
+
+    # Handle Known requests
+    for action in action_handlers:
+        if action in request.action.lower():
+            handler = action_handlers[action]
+            response = handler(request)
+            break
+    # Handle Unkown requests
+    else:
+        response = handle_unknown_action(request)
+
+    return response
 
 
 """
