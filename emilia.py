@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -12,11 +13,17 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language = None) -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    if language=='en': 
+        return f"Hello {name}, I am Emilia."
+    elif language=='es':
+        return f"Hola {name}, soy Emilia."
+    elif language=='ita':
+        return f"Hallo {name}, leider spreche ich nicht 'ita'!"
+
+    # Defaults language=='es'
+    return f"Hallo {name}, ich bin Emilia."
 
 
 """
