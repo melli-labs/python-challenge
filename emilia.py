@@ -182,11 +182,11 @@ class Token(BaseModel):
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
-    ...
+    # Not really a 'Security Person' but this is fun
+    user = get_user(form_data.username)
+    if not (user and verify_password(form_data.password, user.hashed_password)):
+        raise HTTPException(401, detail='Incorrect username or password')
+
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
@@ -209,10 +209,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
+
+    try : 
+        payload = decode_jwt(token)
+    except JWTError:
+        raise credentials_exception
+    
+    return get_user(payload['sub'])
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -220,11 +223,10 @@ async def read_user_secret(
     username: str, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
-    # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
-    ...
-    if user := get_user(username):
-        return user.secret
+    if current_user.username != username:
+        raise HTTPException(403, detail="Don't spy on other user!")
+
+    return current_user.secret
 
 
 """
