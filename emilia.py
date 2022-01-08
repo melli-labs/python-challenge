@@ -1,4 +1,14 @@
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from starlette import requests
+from constants import (
+    GREETINGS,
+    INVALID_LANGUAGE_PARAM_ERROR,
+    ERROR_MESSAGES,
+    STOP_WORDS,
+)
+from typing import List, Optional
+import re
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -12,11 +22,11 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: Optional[str] = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    return GREETINGS.get(language.lower(), INVALID_LANGUAGE_PARAM_ERROR).format(
+        name=name, selector=language
+    )
 
 
 """
@@ -29,8 +39,9 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    ""
+    split = key.split("_")
+    return f"{split[0]}{''.join([x.capitalize() for x in split[1:]])}"
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -60,49 +71,85 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_parsing(function):
+    def inner(*args, **kwargs):
+        if args[1] not in friends:
+            return {
+                "message": f"Hi {args[1]}, I don't know you yet. But I would love to meet you!"
+            }
+        return {"message": function(*args, **kwargs)}
+
+    return inner
+
+
+def handle_call_action(action: List[str], usrename: str):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+
+    for x in friends[usrename]:
+        if x.casefold() in action:
+            return f"🤙 Calling {x} ..."
+    return f"{usrename}, I can't find this person in your contacts."
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action(action: List[str]):
+    """
+    This funtion can also be extended to exatract the exact task
+    for which the user wants to set a reminder.I have written a
+    small code to demonstrade that
+    """
+    for index, string in enumerate(action):
+        if string.casefold() == "to":
+            print(f"Reminder set for {''.join(action[index+1:])}")
+        break
+    return "🔔 Alright, I will remind you!"
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action(action: List[str]):
+    """
+    This function can be extended to extarct the exact time
+    for which the user wantes to set timer for. we can create a
+    to_number function to parse strings to integar types and have
+    have a dict containing time units, similar to the list shown below
+    I have written a small peice of commented out code just to demonstarte that
+    """
+    index = None
+    for i, x in enumerate(action):
+        if x.casefold() in ["minutes", "second", "min", "sec"]:
+            index = i
+    print(action[index])
+
+    return "⏰ Alright, the timer is set!"
 
 
 def handle_unknown_action(action: str):
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    return "👀 Sorry , but I can't help with that!"
 
 
-@app.post("/task3/action", tags=["Task 3"], summary="🤌")
+@handle_parsing
+def parse_intent(command: str, username: str):
+    command = re.sub(r"[^\w]", " ", command).strip()
+    tokenize = command.casefold().split(" ")
+    command = [x for x in tokenize if x not in STOP_WORDS]
+    """
+    A better solution would ne to lemmatize and/or extract synonyms the words so that
+    we can better extract the intent fo the user as below we are missing multiple cases
+    for example `Ring Jared for me` we result in unknown command
+    
+    """
+    if "call" in command:
+        return handle_call_action(command, username)
+    elif "timer" in command:
+        return handle_timer_action(command)
+    elif "reminder" in command or "remind" in command:
+        return handle_reminder_action(command)
+    else:
+        return handle_unknown_action(command)
+
+
+@app.post("/task3/action", tags=["Task 3"], summary="🤌", response_model=ActionResponse)
 def task3_action(request: ActionRequest):
-    """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
-
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    return parse_intent(request.action, request.username)
 
 
 """
@@ -167,6 +214,10 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # tip: check the verify_password above
     # Write your code below
     ...
+
+    user = get_user(form_data.username)
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(**ERROR_MESSAGES["INVALID_USER"])
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
@@ -192,18 +243,27 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    try:
+        payload = decode_jwt(token)
+        username = payload.get("sub")
+        user = get_user(username)
+        if username is None or not user:
+            raise credentials_exception
+        return user
+    except JWTError:
+        raise credentials_exception
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
     username: str, current_user: User = Depends(get_current_user)
 ):
-    """Read a user's secret."""
-    # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
-    ...
-    if user := get_user(username):
+
+    if not current_user:
+        raise HTTPException(**ERROR_MESSAGES["INVALID_USER"])
+    elif current_user.username != username:
+        raise HTTPException(**ERROR_MESSAGES["UNAUTH_USER"])
+    elif user := get_user(username):
         return user.secret
 
 
