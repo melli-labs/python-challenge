@@ -12,11 +12,16 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language=None) -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    if language is None or language=='de':
+        return f"Hallo {name}, ich bin Emilia."
+    elif language=='en':
+        return f"Hello {name}, I am Emilia."
+    elif language == 'es':
+        return f"Hola {name}, soy Emilia."
+    else:
+        return f"Hallo Ben, leider spreche ich nicht '{language}'!"
 
 
 """
@@ -29,8 +34,11 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    key_list = key.split('_')   # split wherever there is an underscore
+    # each character after an underscore gets capitalized. Join string.
+    key_camelized = ''.join([key_list[0]]+[s.title() for s in key_list[1::]])
+
+    return key_camelized
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -60,29 +68,31 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(action):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
 
+    for name in friends[action.username]:
+        if name in action.action:
+            return {'message':f"🤙 Calling {name} ..."}
+    return {'message':f"{action.username}, I can't find this person in your contacts."}
+    
 
-def handle_reminder_action(action: str):
+def handle_reminder_action(action):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    return {'message':"🔔 Alright, I will remind you!"}
 
 
-def handle_timer_action(action: str):
+def handle_timer_action(action):
     # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    return {'message':"⏰ Alright, the timer is set!"}
 
 
-def handle_unknown_action(action: str):
+def handle_unknown_action(actioon):
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    return {'message':"👀 Sorry , but I can't help with that!"}
 
+def handle_user_unknown(action):
+    return {'message':f"Hi {action.username}, I don't know you yet. But I would love to meet you!"}
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
@@ -90,20 +100,32 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
+    
+    # Explanation: 
+    # I comparing the words in the action request to key terms.
+    # To assess the similarity between words, I use vector representations by a FastText model.
+    # The maximum cosine similarity among words in the action requests is computed for all key terms.
+    # The action handler matching the key word with the highest similarity is selected.
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    from gensim.models.fasttext import load_facebook_model                  # gensim version 4.1.2 
+    from gensim.test.utils import datapath
 
+    if request.username not in friends:
+        return handle_user_unknown(request)
+
+    sample_string_list =  request.action[:].casefold().split()              # list of lowercase words
+    model = load_facebook_model(datapath("crime-and-punishment.bin")).wv    # pretrained FastText model
+    key_terms = ['call', 'timer', 'remind'] 
+    handler_dict = dict(zip(key_terms, [handle_call_action, handle_timer_action,handle_reminder_action]))
+    similarity_thresh = 0.96  
+    similarities = [max(model.similarity(s, kt) for s in sample_string_list) for kt in key_terms]
+    max_similarities = max(similarities)
+
+    if max_similarities>similarity_thresh:
+        handler=handler_dict[key_terms[similarities.index(max_similarities)]]
+    else:
+        handler=handle_unknown_action
+    return handler(request)
 
 """
 Task 4 - Security
@@ -166,15 +188,20 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+    user = get_user(form_data.username)
+    if user is not None:
+        if verify_password(secret=form_data.password, hash=user.hashed_password):
+
+            payload = {
+                "sub": form_data.username,
+                "exp": datetime.utcnow() + timedelta(minutes=30),
+            }
+            return {
+                "access_token": encode_jwt(payload),
+                "token_type": "bearer",
+                }  
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect username or password")
 
 
 def get_user(username: str) -> Optional[User]:
@@ -192,7 +219,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+         
+    user =  get_user(decode_jwt(token)["sub"])
+    if user is None:
+        raise (credentials_exception)
+    else:
+         return user
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -202,9 +234,11 @@ async def read_user_secret(
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
-    if user := get_user(username):
-        return user.secret
+    if current_user==get_user(username):
+        return current_user.secret
+    else: 
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Don't spy on other user!")
+   
 
 
 """
