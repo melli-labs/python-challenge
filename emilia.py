@@ -67,49 +67,41 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(request: ActionRequest) -> ActionResponse:
+    for friend in friends[request.username]:
+        if friend in request.action:
+            return ActionResponse(message=f"🤙 Calling {friend} ...")
+    return ActionResponse(message=f"{request.username}, I can't find this person in your contacts.")
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action(request: ActionRequest) -> ActionResponse:
+    return ActionResponse(message="🔔 Alright, I will remind you!")
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action(request: ActionRequest) -> ActionResponse:
+    return ActionResponse(message="⏰ Alright, the timer is set!")
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action(request: ActionRequest) -> ActionResponse:
+    return ActionResponse(message="👀 Sorry , but I can't help with that!")
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
-def task3_action(request: ActionRequest):
+def task3_action(request: ActionRequest) -> ActionResponse:
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
+    if request.username not in friends:
+        return ActionResponse(message=f"Hi {request.username}, I don't know you yet. But I would love to meet you!")
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    actions = {
+        'call': handle_call_action,
+        'remind': handle_reminder_action,
+        'timer': handle_timer_action,
+    }
+    for action_name, handler in actions.items():
+        if action_name in request.action.lower():
+            return handler(request)
+
+    return handle_unknown_action(request)
 
 
 """
