@@ -231,6 +231,20 @@ class TestTask4:
         assert response.status_code == 403
         assert response.json() == {"detail": "Don't spy on other user!"}
 
+    async def test_use_expired_token(self, async_client):
+        # Warning: Hardcoded token with an expiry time in the past
+        expired_stefan_token = (
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+            'eyJzdWIiOiJzdGVmYW4iLCJleHAiOjE2NDMzMTk3NzV9.'
+            'Q_dhr9mah2xY0JlDgT8KqCYj9OoiI6sX83E3yqwjngI'
+        )
+        response = await async_client.get(
+            "/task4/users/stefan/secret",
+            headers={"Authorization": f"Bearer {expired_stefan_token}"},
+        )
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Invalid authentication credentials"}
+
 
 @pytest.mark.depends(on=["TestTask4"])
 def test_task4_success_message():
