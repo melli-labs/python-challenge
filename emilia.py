@@ -119,10 +119,10 @@ from passlib.context import CryptContext
 
 # create secret key with: openssl rand -hex 32
 SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
-ALOGRITHM = "HS256"
+ALGORITHM = "HS256"
 
-encode_jwt = partial(jwt.encode, key=SECRET_KEY, algorithm=ALOGRITHM)
-decode_jwt = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALOGRITHM])
+encode_jwt = partial(jwt.encode, key=SECRET_KEY, algorithm=ALGORITHM)
+decode_jwt = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALGORITHM])
 
 _crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 verify_password = _crypt_context.verify
@@ -161,19 +161,30 @@ class Token(BaseModel):
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
-    ...
+    username = form_data.username
+    password = form_data.password
+    user = get_user(username)
+    if not user:
+        _raise_unauthorized()
+
+    if not verify_password(secret=password, hash=user.hashed_password):
+        _raise_unauthorized()
+
     payload = {
-        "sub": form_data.username,
+        "sub": username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
     }
     return {
         "access_token": encode_jwt(payload),
         "token_type": "bearer",
     }
+
+
+def _raise_unauthorized():
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect username or password",
+    )
 
 
 def get_user(username: str) -> Optional[User]:
@@ -188,10 +199,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
+    try:
+        payload = decode_jwt(token)
+    except jwt.ExpiredSignatureError:
+        raise credentials_exception
+    username = payload["sub"]
+    return get_user(username)
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -199,11 +212,13 @@ async def read_user_secret(
     username: str, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
-    # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
-    ...
-    if user := get_user(username):
+    user = get_user(username)
+    if user and current_user and user == current_user:
         return user.secret
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Don't spy on other user!"
+    )
 
 
 """
