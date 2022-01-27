@@ -33,9 +33,11 @@ from typing import Any
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
+    # Get the list of all words in the key
+    words = key.split('_')
+    # Prepare them to be merged by title case all words except the first one.
+    camel_ready_words = [words[0]] + [_.title() for _ in words[1:]]
+    return "".join(camel_ready_words)
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
