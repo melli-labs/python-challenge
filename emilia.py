@@ -12,11 +12,29 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
     ...
-    return f"Hello {name}, I am Emilia."
+    # Define a dictionary of translations
+    greetings_translations ={
+        "de" : f"Hallo {name}, ich bin Emilia.", 
+        "en" : f"Hello {name}, I am Emilia.",
+        "es" : f"Hola {name}, soy Emilia."
+        }
+
+    # Define an exception string
+    greeting_exception = f"Hallo {name}, leider spreche ich nicht '{language}'!";
+    
+    # Evaluate what message send to the human 
+    ### Version 1
+    # response = greetings_translations[language] if language in greetings_translations else greeting_exception; 
+
+    # return response;
+
+    ### Version 2
+    # Another way of doing it. More python-esque?
+    return greetings_translations.get(language, greeting_exception)
 
 
 """
