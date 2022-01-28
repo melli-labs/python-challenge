@@ -48,13 +48,27 @@ def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
     ...
+    # Split the key into a list and get rid of the _snakey bits_
+    key_list = key.split("_")
+    # Capitalize the strings in this list, starting with the second one
+    key_list_camelized = [part.capitalize() if index > 0 else part for index,part in enumerate(key_list)]
+    # Put our camel together 
+    key = "".join(key_list_camelized);
     return key
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
     """Takes a JSON object and transfroms all keys from snake_case to camelCase."""
-    return {camelize(key): value for key, value in data.items()}
+    # return {camelize(key): value for key, value in data.items()}
+    # return data.items();
+    # camelCased_data = [{camelize(item[0]) for item in data]
+    camelized_data = {} 
+    for item in data.items():
+        camelized_key = camelize(item[0]) 
+        camelized_data[camelized_key] = item[1]
+
+    return camelized_data
 
 
 """
