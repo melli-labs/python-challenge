@@ -1,4 +1,7 @@
+from http.client import CannotSendHeader
+import re
 from fastapi import FastAPI
+import string
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -12,13 +15,16 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language='de') -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
-
-
+    if language == 'en':
+        return f"Hello {name}, I am Emilia."
+    elif language == 'de':
+        return f"Hallo {name}, ich bin Emilia."
+    elif language == 'es':
+        return f"Hola {name}, soy Emilia."
+    else:
+        return f"Hallo {name}, leider spreche ich nicht {repr(language)}!"
 """
 Task 2 - snake_case to cameCase
 """
@@ -28,8 +34,10 @@ from typing import Any
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
+    res = key.split('_')
+    words = [word.capitalize() for word in res[1:]]
+    words.insert(0, res[0])
+    key = ''.join(words)
     return key
 
 
@@ -60,32 +68,43 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
+def handle_call_action(user: str, action: str) -> dict[str, str]:
+    action = action.translate(str.maketrans('', '', string.punctuation))
+    words = action.split()
+    candidates = list(filter(lambda x: x in friends[user], words))
+    if len(candidates) == 0:
+        response = f"{user}, I can't find this person in your contacts."
+    elif len(candidates) == 1:
+        response = f"🤙 Calling {candidates[0]} ..."
+    else:
+        response = "Whom of these do you want me to call ?"
+    return {"message": response}
+
+
+def handle_reminder_action() -> dict[str, str]:
+    response = "🔔 Alright, I will remind you!"
     ...
-    return "🤙 Why don't you call them yourself!"
+    return {"message": response}
 
-
-def handle_reminder_action(action: str):
+def handle_timer_action() -> dict[str, str]:
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    response = "⏰ Alright, the timer is set!"
+    return {"message": response}
 
 
-def handle_timer_action(action: str):
+def handle_unknown_action() -> dict[str, str]:
     # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    response = "👀 Sorry , but I can't help with that!"
+    return {"message": response}
 
-
-def handle_unknown_action(action: str):
+def handle_unknown_user(user: str) -> dict[str, str]:
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    response = f"Hi {user}, I don't know you yet. But I would love to meet you!"
+    return {"message": response}
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
-def task3_action(request: ActionRequest):
+def task3_action(request: ActionRequest) -> ActionResponse:
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
@@ -94,16 +113,23 @@ def task3_action(request: ActionRequest):
     from random import choice
 
     # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    words = request.action.split()
+    words = [word.lower() for word in words]
+    if request.username not in friends.keys():
+        handler = handle_unknown_user(request.username)
+    elif 'call' in words:
+        handler = handle_call_action(request.username, request.action)
+    elif 'remind' in words:
+        handler = handle_reminder_action()
+    elif 'timer' in words:
+        handler = handle_timer_action()
 
+    else:
+        handler = handle_unknown_action()
+    
+    
+    return handler
+   
 
 """
 Task 4 - Security
