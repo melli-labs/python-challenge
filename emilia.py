@@ -179,18 +179,62 @@ def task3_action(request: ActionRequest):
 
 
     # Download English model and initialize the NLP pipeline
-    stanza.download('en') 
-    nlp = stanza.Pipeline('en', processors="ner, tokenize, mwt, depparse, pos, lemma")
+    # stanza.download('en') 
+    # nlp = stanza.Pipeline('en', processors="ner, tokenize, mwt, depparse, pos, lemma")
 
     # Feed the action text into the NLP pipeline
     # (I'm assuming that request.action is a string and omitting exception handling for now :)
-    doc = nlp(request.action) 
+    # doc = nlp(request.action) 
 
 
-    print(*[f'id: {word.id}\tword: {word.text}\thead id: {word.head}\thead: {sent.words[word.head-1].text if word.head > 0 else "root"}\tdeprel: {word.deprel}' for sent in doc.sentences for word in sent.words], sep='\n')
+    # print(*[f'id: {word.id}\tword: {word.text}\thead id: {word.head}\thead: {sent.words[word.head-1].text if word.head > 0 else "root"}\tdeprel: {word.deprel}' for sent in doc.sentences for word in sent.words], sep='\n')
+
+    # Our NLP models live on the huggingface API
+    import json
+    import requests
+
+    API_URL_0SHOT = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
+    API_URL_NER = "https://api-inference.huggingface.co/models/dbmdz/bert-large-cased-finetuned-conll03-english"
+
+    # Retrieve API token
+    from configparser import ConfigParser
+    config = ConfigParser()
+    config.read('keys_config.cfg')
+    API_TOKEN = config.get('huggingface', 'api_token')
+
+    headers = {"Authorization": f"Bearer {API_TOKEN}"}
+
+    def query(payload, api_url):
+        data = json.dumps(payload)
+        response = requests.request("POST", api_url, headers=headers, data=data)
+        return json.loads(response.content.decode("utf-8"))
+
+    ACTION_LABELS = ["call", "timer", "reminder"]
+
+    data_0shot =  query(
+        {
+            "inputs": request.action,
+            "parameters": {"candidate_labels": ACTION_LABELS},
+        }, API_URL_0SHOT
+    )
+    print(data_0shot)
+
+    # Check if request is a call
+    scores_list = data_0shot["scores"]
+    index_of_max_value = scores_list.index(max(scores_list))
+    index_of_call_action = ACTION_LABELS.index("call")
+
+    if index_of_max_value == index_of_call_action:
+        data_ner = query(
+        {
+            "inputs": request.action,
+        }, API_URL_NER
+    )
+
+    data = {"0shot": data_0shot, "ner": data_ner}
 
     # return handler(request.action)
-    return "COMING SOON"
+    return data
 
 
 """

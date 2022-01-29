@@ -10,3 +10,4 @@ __pycache__/
 TODO.md
 TODO.pdf
 .venv*/
+keys_config.cfg
