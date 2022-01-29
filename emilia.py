@@ -136,6 +136,31 @@ def task3_action(request: ActionRequest):
     ...
     
     ##### STRATEGY:
+    ##### In task 3, Emilia can do 3 things: Call someone, set a timer and set a reminder.
+    ##### She can also handle several exceptions: the user is not yet registered, the friend to call is not in the phonebook, etc.
+    ##### Really tackling such a challenge would probably involve training the NLP models on a lot of data.
+    ##### Since I'm not going to do that, I settled for a heuristic approach, based on the observations of the request-response patterns in test_emilia.py:
+    ##### A. A CALL always results from requests that have both the word "call" as well as a name of a person
+    ##### B. A TIMER results from a request containing the word "timer"
+    ##### C. A REMINDER results from a request containing the word "remind"
+    #####
+    ##### Thus the PLAN is to
+    ##### 0. Handle exceptions in front (so we don't use the slow NLP engine unnecessarily)
+    ##### 1. Annotate the request using the NLP engine, thus condensing and unifying the data
+    ##### 2. Look through the annotated data for keywords (possibly lemmata) and named entites 
+    ##### 3. Use this data to check for exceptions (e.g. friend not in contacts)
+    ##### 4. Use this data to call the appropiate action handler
+    #####
+    ##### Using this keyword-based approach will leave the NLP engine a little underused, but we can still say "I've used an NLP engine" and be technically correct. So it's all worth it ;)
+    ##### The NLP engine will still be valuable, helping us essentially with 
+    ##### 1. Separating the request into sentences and words
+    ##### 2. Filtering out names (in NLP lingo: named entities)
+    #####
+    ##### It also sets us up with a lot of syntactic information, which might be used for different things in the future, e.g. mirroring the request in the response, as in "I'll remind you *to book the tickets* in an hour"
+    ##### 
+
+    ##### Plan of implementation
+    ##### 0. Before anything else, check if the user is registered
     ##### 1. Run the action request through NLP pipeline consisting of specific processors 
     ##### 2. Use the NER processor to look for proper names (entities) 
     ##### 3. Check the cleaned up text of the action request for keywords: "remind", "call", "timer", "alarm"
@@ -153,9 +178,10 @@ def task3_action(request: ActionRequest):
     ## 3. Implement fuzzy search, or at least a "Sorry, can't find a Marty in your contacts. Did You mean Marta?" 
 
 
-    ### Setup the NLP pipeline
-    stanza.download('en') # download English model
-    nlp = stanza.Pipeline('en', processors="ner, tokenize, mwt, depparse, pos, lemma") # initialize English neural pipeline
+    # Download English model and initialize the NLP pipeline
+    stanza.download('en') 
+    nlp = stanza.Pipeline('en', processors="ner, tokenize, mwt, depparse, pos, lemma")
+
     # Feed the action text into the NLP pipeline
     # (I'm assuming that request.action is a string and omitting exception handling for now :)
     doc = nlp(request.action) 
@@ -163,14 +189,6 @@ def task3_action(request: ActionRequest):
 
     print(*[f'id: {word.id}\tword: {word.text}\thead id: {word.head}\thead: {sent.words[word.head-1].text if word.head > 0 else "root"}\tdeprel: {word.deprel}' for sent in doc.sentences for word in sent.words], sep='\n')
 
-
-    # Use NLP magic to find out:
-    # 1. action-words? : remind, call, timer
-    
-    # 2. predicates/objects: a timer {for x minutes}, call {someone}, remind {to do smth} 
-    # 3. If name and name in friends[request.user] handler(request.action)
-
-    # probably also pass request.user
     # return handler(request.action)
     return "COMING SOON"
 
