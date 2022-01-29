@@ -73,6 +73,7 @@ Task 3 - Handle User Actions
 """
 
 from pydantic import BaseModel
+import stanza
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -92,6 +93,10 @@ class ActionResponse(BaseModel):
 def handle_call_action(action: str):
     # Write your code below
     ...
+    # 1 extend parameter to include friends name and possibly user
+    # 2 check if friend is in friends[user]
+    # 3 send exception message OR iniate call
+    # Bonus: Did you mean ...?
     return "🤙 Why don't you call them yourself!"
 
 
@@ -110,7 +115,7 @@ def handle_timer_action(action: str):
 def handle_unknown_action(action: str):
     # Write your code below
     ...
-    return "🤬 #$!@"
+    return "Hi Felix, I don't know you yet. But I would love to meet you!"
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -120,18 +125,23 @@ def task3_action(request: ActionRequest):
     #      of the action handlers
     # Write your code below
     ...
-    from random import choice
+    
+    
+    stanza.download('en') # download English model
+    nlp = stanza.Pipeline('en') # initialize English neural pipeline
+    doc = nlp("Barack Obama was born in Hawaii.") # run annotation over a sentence
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    print(doc)
+
+    # Use NLP magic to find out:
+    # 1. action-words? : remind, call, timer
+    
+    # 2. predicates/objects: a timer {for x minutes}, call {someone}, remind {to do smth} 
+    # 3. If name and name in friends[request.user] handler(request.action)
+
+    # probably also pass request.user
+    # return handler(request.action)
+    return "COMING SOON"
 
 
 """
