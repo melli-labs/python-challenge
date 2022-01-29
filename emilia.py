@@ -99,6 +99,15 @@ def handle_call_action(action: str):
     # Bonus: Did you mean ...?
     return "🤙 Why don't you call them yourself!"
 
+def handle_call_unknown_action(username: str):
+    # Write your code below
+    ...
+    # 1 extend parameter to include friends name and possibly user
+    # 2 check if friend is in friends[user]
+    # 3 send exception message OR iniate call
+    # Bonus: Did you mean ...?
+    return f"{username}, I can't find this person in your contacts."
+
 
 def handle_reminder_action(action: str):
     # Write your code below
@@ -126,12 +135,34 @@ def task3_action(request: ActionRequest):
     # Write your code below
     ...
     
-    
-    stanza.download('en') # download English model
-    nlp = stanza.Pipeline('en') # initialize English neural pipeline
-    doc = nlp("Barack Obama was born in Hawaii.") # run annotation over a sentence
+    ##### STRATEGY:
+    ##### 1. Run the action request through NLP pipeline consisting of specific processors 
+    ##### 2. Use the NER processor to look for proper names (entities) 
+    ##### 3. Check the cleaned up text of the action request for keywords: "remind", "call", "timer", "alarm"
+    ##### 3?. Look through lemmata instead of words to catch both "remind me to..." and "set a reminder..."?
+    ##### 4-bonus: Use dependency parsing(?) to figure out constituents ... so that E can give fuller responses, such as "Setting timer for x minutes"
+    ##### 
+    # With our request now being condensed into 1. Entities (0 or more), 2. Keywords, and 3. Relations, we will have an easier time solving our tasks. 
+    # 0. if request.user not in users: handle_unknown_action(request.user)
+    # 1. if "call" in all_words and there is an entity: 
+    # 1a. entity not in request.user.friends: handle_call_unknown_action(request.username)
+    # 1b: entity in request.user.friends: handle_call_action(entity)
+    ## Ideas for improvement:
+    ## 1. Use syntactic relations to be more sure about user's intent and catch different request structures: e.g. do a co-reference resolution for pronouns with head == call
+    ## 2. Think about edge cases like: user wants to call her friend Emilia, user has two friends named Dorian, user misspoke and wants to cancel
+    ## 3. Implement fuzzy search, or at least a "Sorry, can't find a Marty in your contacts. Did You mean Marta?" 
 
-    print(doc)
+
+    ### Setup the NLP pipeline
+    stanza.download('en') # download English model
+    nlp = stanza.Pipeline('en', processors="ner, tokenize, mwt, depparse, pos, lemma") # initialize English neural pipeline
+    # Feed the action text into the NLP pipeline
+    # (I'm assuming that request.action is a string and omitting exception handling for now :)
+    doc = nlp(request.action) 
+
+
+    print(*[f'id: {word.id}\tword: {word.text}\thead id: {word.head}\thead: {sent.words[word.head-1].text if word.head > 0 else "root"}\tdeprel: {word.deprel}' for sent in doc.sentences for word in sent.words], sep='\n')
+
 
     # Use NLP magic to find out:
     # 1. action-words? : remind, call, timer
