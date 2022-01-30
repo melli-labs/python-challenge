@@ -354,10 +354,37 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # tip: check the verify_password above
     # Write your code below
     ...
+    username = form_data.username
+    password = form_data.password
+
+    # We'll use this if the username doesn't exist or the password is incorrect
+    # Stolen from get_current_user
+    credential_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect username or password",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    # Check if user is in our DB
+    # We'll just use the get_user function for this, since it was already here 
+    user = get_user(username)
+
+    # if no, send a 401
+    if user == None: raise credential_exception
+
+    ### this code runs when user is in DB
+    # verify password by comparing hashes
+    do_passwords_match = verify_password(password, user.hashed_password)
+    # if passwords dont match, send 401
+    if not do_passwords_match: raise credential_exception
+
+    ### this code runs when user is in DB and the password is correct
+    # send token
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
     }
+
     return {
         "access_token": encode_jwt(payload),
         "token_type": "bearer",
