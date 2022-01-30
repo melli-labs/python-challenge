@@ -1,3 +1,5 @@
+from __future__ import annotations, barry_as_FLUFL
+from xxlimited import foo
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -126,6 +128,19 @@ def handle_unknown_action(action: str):
     ...
     return "Hi Felix, I don't know you yet. But I would love to meet you!"
 
+def get_annotations(action: str):
+    API1 = foo
+    API2 = barry_as_FLUFL
+
+    API_TOKEN = get_API_token()
+
+    data_0shot = call_API(API1)
+    data_0shot = call_API(API2)
+    data_final = foo:bar
+
+    return annotations
+
+def call_API
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
@@ -135,59 +150,27 @@ def task3_action(request: ActionRequest):
     # Write your code below
     ...
     
-    ##### STRATEGY:
-    ##### In task 3, Emilia can do 3 things: Call someone, set a timer and set a reminder.
-    ##### She can also handle several exceptions: the user is not yet registered, the friend to call is not in the phonebook, etc.
-    ##### Really tackling such a challenge would probably involve training the NLP models on a lot of data.
-    ##### Since I'm not going to do that, I settled for a heuristic approach, based on the observations of the request-response patterns in test_emilia.py:
-    ##### A. A CALL always results from requests that have both the word "call" as well as a name of a person
-    ##### B. A TIMER results from a request containing the word "timer"
-    ##### C. A REMINDER results from a request containing the word "remind"
-    #####
-    ##### Thus the PLAN is to
-    ##### 0. Handle exceptions in front (so we don't use the slow NLP engine unnecessarily)
-    ##### 1. Annotate the request using the NLP engine, thus condensing and unifying the data
-    ##### 2. Look through the annotated data for keywords (possibly lemmata) and named entites 
-    ##### 3. Use this data to check for exceptions (e.g. friend not in contacts)
-    ##### 4. Use this data to call the appropiate action handler
-    #####
-    ##### Using this keyword-based approach will leave the NLP engine a little underused, but we can still say "I've used an NLP engine" and be technically correct. So it's all worth it ;)
-    ##### The NLP engine will still be valuable, helping us essentially with 
-    ##### 1. Separating the request into sentences and words
-    ##### 2. Filtering out names (in NLP lingo: named entities)
-    #####
-    ##### It also sets us up with a lot of syntactic information, which might be used for different things in the future, e.g. mirroring the request in the response, as in "I'll remind you *to book the tickets* in an hour"
-    ##### 
+    ### STRATEGY ###
+    # 0. Check if the user is registered - which would save us an API call
+    # 1. For triage, use a 0-shot classification model through the huggingface API (API_URL_0SHOT). This model seems to do the job out of the box.
+    # 2. If the result is that the action is a CALL, use another API to scan the action for named entities (API_URL_NER)
+    # 2b. Check if friend is in contacts and send to the appropiate handlers
+    # 3. If it's not a CALL we're ready to send to the appropiate handler
+    # 
+    # At this point, I keep things simple.
+    #
+    #
+    #
+    # Ideas for further improvements:
+    # * We find out who our user wants to place a call to by simply filtering out any person's name present in the request. We could use some syntactic information, to make sure.
+    # * things in the future, e.g. mirroring the request in the response, as in "I'll remind you *to book the tickets* in an hour"
+    # * Use dependency parsing(?) to figure out what the reminder is for and how long is the timer. That would also allow Emilia to give fuller responses, as in "I'll remind you *to book the tickets* in an hour". This mirroring might be reassuring for the user. 
+    # * Use syntactic relations to be more sure about user's intent and catch different request structures: e.g. do a co-reference resolution for pronouns with head == call
+    # * Think about edge cases like: user wants to call her friend Emilia, user has two friends named Dorian, user misspoke and wants to cancel
+    # * Implement fuzzy search, or at least a "Sorry, can't find a Marty in your contacts. Did You mean Marta?" 
+    # * Implement various exception handlers so that our program doesn't crash :)
 
-    ##### Plan of implementation
-    ##### 0. Before anything else, check if the user is registered
-    ##### 1. Run the action request through NLP pipeline consisting of specific processors 
-    ##### 2. Use the NER processor to look for proper names (entities) 
-    ##### 3. Check the cleaned up text of the action request for keywords: "remind", "call", "timer", "alarm"
-    ##### 3?. Look through lemmata instead of words to catch both "remind me to..." and "set a reminder..."?
-    ##### 4-bonus: Use dependency parsing(?) to figure out constituents ... so that E can give fuller responses, such as "Setting timer for x minutes"
-    ##### 
-    # With our request now being condensed into 1. Entities (0 or more), 2. Keywords, and 3. Relations, we will have an easier time solving our tasks. 
-    # 0. if request.user not in users: handle_unknown_action(request.user)
-    # 1. if "call" in all_words and there is an entity: 
-    # 1a. entity not in request.user.friends: handle_call_unknown_action(request.username)
-    # 1b: entity in request.user.friends: handle_call_action(entity)
-    ## Ideas for improvement:
-    ## 1. Use syntactic relations to be more sure about user's intent and catch different request structures: e.g. do a co-reference resolution for pronouns with head == call
-    ## 2. Think about edge cases like: user wants to call her friend Emilia, user has two friends named Dorian, user misspoke and wants to cancel
-    ## 3. Implement fuzzy search, or at least a "Sorry, can't find a Marty in your contacts. Did You mean Marta?" 
-
-
-    # Download English model and initialize the NLP pipeline
-    # stanza.download('en') 
-    # nlp = stanza.Pipeline('en', processors="ner, tokenize, mwt, depparse, pos, lemma")
-
-    # Feed the action text into the NLP pipeline
-    # (I'm assuming that request.action is a string and omitting exception handling for now :)
-    # doc = nlp(request.action) 
-
-
-    # print(*[f'id: {word.id}\tword: {word.text}\thead id: {word.head}\thead: {sent.words[word.head-1].text if word.head > 0 else "root"}\tdeprel: {word.deprel}' for sent in doc.sentences for word in sent.words], sep='\n')
+    ### ACTUAL CODE ### 
 
     # Our NLP models live on the huggingface API
     import json
@@ -232,6 +215,16 @@ def task3_action(request: ActionRequest):
     )
 
     data = {"0shot": data_0shot, "ner": data_ner}
+    # EXAMPLE RESPONSE
+    #     "ner": [
+    #     {
+    #       "entity_group": "PER",
+    #       "score": 0.8540124297142029,
+    #       "word": "Franziska",
+    #       "start": 20,
+    #       "end": 29
+    #     }
+    #   ]
 
     # return handler(request.action)
     return data
