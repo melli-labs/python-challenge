@@ -358,7 +358,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     password = form_data.password
 
     # We'll use this if the username doesn't exist or the password is incorrect
-    # Stolen from get_current_user
     credential_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Incorrect username or password",
@@ -369,8 +368,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # We'll just use the get_user function for this, since it was already here 
     user = get_user(username)
 
-    # if no, send a 401
-    if user == None: raise credential_exception
+    # if not, send a 401
+    if user is None: raise credential_exception
 
     ### this code runs when user is in DB
     # verify password by comparing hashes
@@ -408,6 +407,25 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # Write your code below
     ...
 
+   
+    # Check if token is valid
+    # If not, raise an exception
+    try:
+        decoded_token = decode_jwt(token)
+        username = decoded_token["sub"]
+        expiration_time = decoded_token["exp"]
+    except: 
+        raise credentials_exception
+
+    # Check if the token is expired
+    if datetime.utcnow() > datetime.utcfromtimestamp(expiration_time): raise credentials_exception
+    
+
+    # This code runs only if the token is valid
+    user = fake_users_db[username]
+
+    return user
+
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
@@ -417,8 +435,16 @@ async def read_user_secret(
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
     ...
-    if user := get_user(username):
-        return user.secret
+
+    if username == current_user["username"]:
+        if user := get_user(username):
+            return user.secret
+
+    # This code runs if someone with a valid token tried to access another user's secret
+    raise HTTPException(
+        status_code=403,
+        detail="Don't spy on other user!"
+    )
 
 
 """
