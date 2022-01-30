@@ -145,6 +145,13 @@ def handle_unknown_action(action: str):
 
 #######
 # New functions
+def call_API(payload: str, api_url: str):
+    headers = {"Authorization": f"Bearer {API_TOKEN}"}
+    data = json.dumps(payload)
+    response = requests.request("POST", api_url, headers=headers, data=data)
+
+    return json.loads(response.content.decode("utf-8"))
+
 def get_annotations_0_shot(action: str, triage_labels: list):
     API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
     payload = {
@@ -157,17 +164,34 @@ def get_annotations_0_shot(action: str, triage_labels: list):
 
 def get_annotations_ner(action: str):
     API_URL = "https://api-inference.huggingface.co/models/dbmdz/bert-large-cased-finetuned-conll03-english"
-    payload = 
+    payload = {
+            "inputs": action,
+        }
     annotations = call_API(payload, API_URL)
 
     return annotations
 
-def call_API(payload: str, api_url: str):
-    headers = {"Authorization": f"Bearer {API_TOKEN}"}
-    data = json.dumps(payload)
-    response = requests.request("POST", api_url, headers=headers, data=data)
+def extract_person_to_call(action: str):
+    annotations_ner = get_annotations_ner(action)
+    # EXAMPLE RESPONSE
+    #     [
+    #     {
+    #       "entity_group": "PER",
+    #       "score": 0.8540124297142029,
+    #       "word": "Franziska",
+    #       "start": 20,
+    #       "end": 29
+    #     }
+    #   ]
+    
+    person_to_call = annotations_ner[0]["word"]
 
-    return json.loads(response.content.decode("utf-8"))
+    # Ideas for improvement
+    # Multiple checks are possible: check that the entity_group is "PER"
+    # Handle exception: list is empty -> send special response "I'm sorry, Edward, I didn't understand who you would like to call."
+
+    return person_to_call
+
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -200,36 +224,30 @@ def task3_action(request: ActionRequest):
 
     # Our possible actions 
     TRIAGE_LABELS = ["call", "timer", "reminder"]
-    # 1. Call 0-Shot API. 
-    # This API assigns a probability to each of the TRIAGE_LABELS, providing us with a basic triage service. We'll keep it simple for now and just trust its judgement. 
+
+    # 1. Triage
+    # This 0-shot API tries to classify our request.action by assigning probability to each of the TRIAGE_LABELS. 
+    # We'll keep it simple for now and just trust its judgement. 
     annotations_0shot = get_annotations_0_shot(request.action, TRIAGE_LABELS)
+    # Take the list of probabilites from the response object
+    scores_list = annotations_0shot["scores"]
 
     # Check if request is a call
-    scores_list = data_0shot["scores"]
-    index_of_max_value = scores_list.index(max(scores_list))
-    index_of_call_action = ACTION_LABELS.index("call")
+    # To find out the desired action, we correlate the highest score back to the list of labels the API sends back as well.
+    # This list contains the same labels we sent to the API as TRIAGE_LABELS, but sometimes in a different order.  
+    index_of_max_score = scores_list.index(max(scores_list))
+    corresponding_list_of_labels = annotations_0shot["labels"]
+    desired_action = corresponding_list_of_labels[index_of_max_score]
+    print("DESIRED ACTION:")
+    print(desired_action)
+    print(annotations_0shot)
 
-    if index_of_max_value == index_of_call_action:
-        data_ner = query(
-        {
-            "inputs": request.action,
-        }, API_URL_NER
-    )
+    if desired_action == "call": 
+        person_to_call = extract_person_to_call(request.action)
 
-    data = {"0shot": data_0shot, "ner": data_ner}
-    # EXAMPLE RESPONSE
-    #     "ner": [
-    #     {
-    #       "entity_group": "PER",
-    #       "score": 0.8540124297142029,
-    #       "word": "Franziska",
-    #       "start": 20,
-    #       "end": 29
-    #     }
-    #   ]
 
     # return handler(request.action)
-    return data
+    return desired_action
 
     # Ideas for further improvements:
     # * We find out who our user wants to place a call to by simply filtering out any person's name present in the request. We could use some syntactic information, to make sure.
