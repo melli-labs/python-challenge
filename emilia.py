@@ -75,7 +75,21 @@ Task 3 - Handle User Actions
 """
 
 from pydantic import BaseModel
-import stanza
+
+#######
+# Sections added by me are marked with 7 #s
+# Some setup.
+# We call the huggingface API to use some NLP models. 
+# Details below in task3_action (comments, STRATEGY section).
+import json
+import requests
+
+from configparser import ConfigParser
+config = ConfigParser()
+config.read('keys_config.cfg')
+
+API_TOKEN = config.get('huggingface', 'api_token')
+#######
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -128,19 +142,33 @@ def handle_unknown_action(action: str):
     ...
     return "Hi Felix, I don't know you yet. But I would love to meet you!"
 
-def get_annotations(action: str):
-    API1 = foo
-    API2 = barry_as_FLUFL
 
-    API_TOKEN = get_API_token()
-
-    data_0shot = call_API(API1)
-    data_0shot = call_API(API2)
-    data_final = foo:bar
+#######
+# New functions
+def get_annotations_0_shot(action: str, triage_labels: list):
+    API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
+    payload = {
+            "inputs": action,
+            "parameters": {"candidate_labels": triage_labels},
+        }    
+    annotations = call_API(payload, API_URL)
 
     return annotations
 
-def call_API
+def get_annotations_ner(action: str):
+    API_URL = "https://api-inference.huggingface.co/models/dbmdz/bert-large-cased-finetuned-conll03-english"
+    payload = 
+    annotations = call_API(payload, API_URL)
+
+    return annotations
+
+def call_API(payload: str, api_url: str):
+    headers = {"Authorization": f"Bearer {API_TOKEN}"}
+    data = json.dumps(payload)
+    response = requests.request("POST", api_url, headers=headers, data=data)
+
+    return json.loads(response.content.decode("utf-8"))
+
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
@@ -153,54 +181,28 @@ def task3_action(request: ActionRequest):
     ### STRATEGY ###
     # 0. Check if the user is registered - which would save us an API call
     # 1. For triage, use a 0-shot classification model through the huggingface API (API_URL_0SHOT). This model seems to do the job out of the box.
+ 
     # 2. If the result is that the action is a CALL, use another API to scan the action for named entities (API_URL_NER)
     # 2b. Check if friend is in contacts and send to the appropiate handlers
     # 3. If it's not a CALL we're ready to send to the appropiate handler
     # 
     # At this point, I keep things simple.
-    #
-    #
-    #
-    # Ideas for further improvements:
-    # * We find out who our user wants to place a call to by simply filtering out any person's name present in the request. We could use some syntactic information, to make sure.
-    # * things in the future, e.g. mirroring the request in the response, as in "I'll remind you *to book the tickets* in an hour"
-    # * Use dependency parsing(?) to figure out what the reminder is for and how long is the timer. That would also allow Emilia to give fuller responses, as in "I'll remind you *to book the tickets* in an hour". This mirroring might be reassuring for the user. 
-    # * Use syntactic relations to be more sure about user's intent and catch different request structures: e.g. do a co-reference resolution for pronouns with head == call
-    # * Think about edge cases like: user wants to call her friend Emilia, user has two friends named Dorian, user misspoke and wants to cancel
-    # * Implement fuzzy search, or at least a "Sorry, can't find a Marty in your contacts. Did You mean Marta?" 
-    # * Implement various exception handlers so that our program doesn't crash :)
-
+   
     ### ACTUAL CODE ### 
 
-    # Our NLP models live on the huggingface API
-    import json
-    import requests
+    # 0. Check user
+    # CALL_API(0Shot)
+    # Triage the request by processing the returned data: max(data), maybe use a dictionary with function handlers?
+    # if CALL CALL_API(NER)
+    #   check_if_friend
+    # if not friend -> handle_call unknown 
+    # if friend -> handle_call
 
-    API_URL_0SHOT = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
-    API_URL_NER = "https://api-inference.huggingface.co/models/dbmdz/bert-large-cased-finetuned-conll03-english"
-
-    # Retrieve API token
-    from configparser import ConfigParser
-    config = ConfigParser()
-    config.read('keys_config.cfg')
-    API_TOKEN = config.get('huggingface', 'api_token')
-
-    headers = {"Authorization": f"Bearer {API_TOKEN}"}
-
-    def query(payload, api_url):
-        data = json.dumps(payload)
-        response = requests.request("POST", api_url, headers=headers, data=data)
-        return json.loads(response.content.decode("utf-8"))
-
-    ACTION_LABELS = ["call", "timer", "reminder"]
-
-    data_0shot =  query(
-        {
-            "inputs": request.action,
-            "parameters": {"candidate_labels": ACTION_LABELS},
-        }, API_URL_0SHOT
-    )
-    print(data_0shot)
+    # Our possible actions 
+    TRIAGE_LABELS = ["call", "timer", "reminder"]
+    # 1. Call 0-Shot API. 
+    # This API assigns a probability to each of the TRIAGE_LABELS, providing us with a basic triage service. We'll keep it simple for now and just trust its judgement. 
+    annotations_0shot = get_annotations_0_shot(request.action, TRIAGE_LABELS)
 
     # Check if request is a call
     scores_list = data_0shot["scores"]
@@ -228,6 +230,15 @@ def task3_action(request: ActionRequest):
 
     # return handler(request.action)
     return data
+
+    # Ideas for further improvements:
+    # * We find out who our user wants to place a call to by simply filtering out any person's name present in the request. We could use some syntactic information, to make sure.
+    # * things in the future, e.g. mirroring the request in the response, as in "I'll remind you *to book the tickets* in an hour"
+    # * Use dependency parsing(?) to figure out what the reminder is for and how long is the timer. That would also allow Emilia to give fuller responses, as in "I'll remind you *to book the tickets* in an hour". This mirroring might be reassuring for the user. 
+    # * Use syntactic relations to be more sure about user's intent and catch different request structures: e.g. do a co-reference resolution for pronouns with head == call
+    # * Think about edge cases like: user wants to call her friend Emilia, user has two friends named Dorian, user misspoke and wants to cancel
+    # * Implement fuzzy search, or at least a "Sorry, can't find a Marty in your contacts. Did You mean Marta?" 
+    # * Implement various exception handlers so that our program doesn't crash :)
 
 
 """
