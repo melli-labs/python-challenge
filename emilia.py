@@ -110,47 +110,59 @@ def handle_call_action(person_to_call: str):
     # Write your code below
     ...
     
-    return f"🤙 Calling {person_to_call} ..."
+    message = f"🤙 Calling {person_to_call} ..."
 
+    return {"message": message}
 
-def handle_reminder_action(action: str):
+def handle_reminder_action():
     # Write your code below
     ...
-    return "🔔 I can't even remember my own stuff!"
+    message = "🔔 Alright, I will remind you!"
 
+    return {"message": message}
 
-def handle_timer_action(action: str):
+def handle_timer_action():
     # Write your code below
     ...
-    return "⏰ I don't know how to read the clock!"
+    message = "⏰ Alright, the timer is set!"
 
+    return {"message": message}
 
-def handle_unknown_action(action: str):
+def handle_unknown_action():
     # Write your code below
     ...
-    return "Hi Felix, I don't know you yet. But I would love to meet you!"
+    message = "👀 Sorry , but I can't help with that!"
+
+    return {"message": message}
+
+def handle_unknown_user(username: str):
+    # Write your code below
+    ...
+    message = f"Hi {username}, I don't know you yet. But I would love to meet you!"
+
+    return {"message": message}
 
 
 #######
-# New functions
+# New handlers
 def handle_call_unknown_action(username: str):
-    # Write your code below
-    ...
-    # 1 extend parameter to include friends name and possibly user
-    # 2 check if friend is in friends[user]
-    # 3 send exception message OR iniate call
-    # Bonus: Did you mean ...?
-    return f"{username}, I can't find this person in your contacts."
+    message = f"{username}, I can't find this person in your contacts."
+
+    return {"message": message}
+
 
 def handle_error(): 
+    # A token function for error handling
     return "Ooops, something went wrong! Please reload the page (:"
 
+# New utilities
 def call_API(payload: str, api_url: str):
     headers = {"Authorization": f"Bearer {API_TOKEN}"}
     data = json.dumps(payload)
     response = requests.request("POST", api_url, headers=headers, data=data)
 
     return json.loads(response.content.decode("utf-8"))
+
 
 def get_annotations_0_shot(action: str, triage_labels: list):
     API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
@@ -162,6 +174,7 @@ def get_annotations_0_shot(action: str, triage_labels: list):
 
     return annotations
 
+
 def get_annotations_ner(action: str):
     API_URL = "https://api-inference.huggingface.co/models/dbmdz/bert-large-cased-finetuned-conll03-english"
     payload = {
@@ -170,6 +183,7 @@ def get_annotations_ner(action: str):
     annotations = call_API(payload, API_URL)
 
     return annotations
+
 
 def extract_person_to_call(action: str):
     annotations_ner = get_annotations_ner(action)
@@ -193,7 +207,6 @@ def extract_person_to_call(action: str):
     return person_to_call
 
 
-
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
@@ -212,52 +225,60 @@ def task3_action(request: ActionRequest):
     # 
     # At this point, I keep things simple.
    
+
     ### ACTUAL CODE ### 
-
-    # 0. Check user
-    username = request.username
-    # CALL_API(0Shot)
-    # Triage the request by processing the returned data: max(data), maybe use a dictionary with function handlers?
-    # if CALL CALL_API(NER)
-    #   check_if_friend
-    # if not friend -> handle_call unknown 
-    # if friend -> handle_call
-
     # Our possible actions 
     TRIAGE_LABELS = ["call", "timer", "reminder"]
+    response_message = "If you see this, we had an oopsie! Please reload the page." 
 
-    # 1. Triage
+    ### 0. Check user ###
+    username = request.username
+    registered_users = friends.keys()
+    if username not in registered_users: return handle_unknown_user(username)
+
+    ### 1. Triage ###
     # This 0-shot API tries to classify our request.action by assigning probability to each of the TRIAGE_LABELS. 
     # We'll keep it simple for now and just trust its judgement. 
     try:
         annotations_0shot = get_annotations_0_shot(request.action, TRIAGE_LABELS)
         # Take the list of probabilites from the response object
         scores_list = annotations_0shot["scores"]
+        print(annotations_0shot)
     except:
         return handle_error()
     
-    # Find out the desired action
+    # The highest value tells us which of our labels is the most likely
+    max_score = max(scores_list)
+
+    # If the highest score isn't even that high, we take this to mean that the action is undetermined
+    if max_score < 0.6: 
+        return handle_unknown_action()
+    
     # We correlate the highest score back to the list of labels the API sends back as well.
     # This list contains the same labels we sent to the API as TRIAGE_LABELS, but sometimes in a different order.  
-    index_of_max_score = scores_list.index(max(scores_list))
+    index_of_max_score = scores_list.index(max_score)
     corresponding_list_of_labels = annotations_0shot["labels"]
     desired_action = corresponding_list_of_labels[index_of_max_score]
   
-    # 2. User wants to call, so we have to find out who. 
-    # Or whom
+    ### 2. User wants to CALL, so we have to find out who...  ###
+    # or whom
     if desired_action == "call": 
         try:
             person_to_call = extract_person_to_call(request.action)
         except:
             return handle_error()
-    
-    users_contacts = friends[request.username]
-    if person_to_call in users_contacts: return handle_call_action(person_to_call)
-    else: return handle_call_unknown_action(username)
 
+        # Also, check if this person is in our user's contacts
+        users_contacts = friends[request.username]
+        if person_to_call and person_to_call in users_contacts: return handle_call_action(person_to_call)
+        else: return handle_call_unknown_action(username)
 
-    # return handler(request.action)
-    return desired_action
+    ### 3. The desired action is not a CALL ###
+    # We could parse it some more, but at this point let's just call the appropiate handlers
+    if desired_action == "timer": return handle_timer_action()
+    if desired_action == "reminder": return handle_reminder_action()
+
+    return
 
     # Ideas for further improvements:
     # * We find out who our user wants to place a call to by simply filtering out any person's name present in the request. We could use some syntactic information, to make sure.
@@ -267,6 +288,8 @@ def task3_action(request: ActionRequest):
     # * Think about edge cases like: user wants to call her friend Emilia, user has two friends named Dorian, user misspoke and wants to cancel
     # * Implement fuzzy search, or at least a "Sorry, can't find a Marty in your contacts. Did You mean Marta?" 
     # * Implement various exception handlers so that our program doesn't crash :)
+    # * Make the control flow clearer. Right now we have several return statements. If this gets any bigger, it will be hard to see which handler gets called under which conditions. Maybe implement a state machine? 
+    # * Improve error handling
 
 
 """
