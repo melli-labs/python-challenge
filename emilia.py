@@ -206,20 +206,20 @@ class Token(BaseModel):
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
-
+    user_data = get_user(form_data.username)
+    if user_data and verify_password(form_data.password, user_data.hashed_password) == True: 
+        payload = {
+            "sub": form_data.username,
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+        }
+        return {
+            "access_token": encode_jwt(payload),
+            "token_type": "bearer",
+        }
+    else: 
+        raise HTTPException(
+            status_code=401,
+            detail = "Incorrect username or password")
 
 def get_user(username: str) -> Optional[User]:
     if username not in fake_users_db:
@@ -233,10 +233,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
+    decoded_from_token = decode_jwt(token)
+    username:str = decoded_from_token.get("sub")
+    if get_user(username):
+        return username
+    else:
+        raise credentials_exception
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -244,11 +246,14 @@ async def read_user_secret(
     username: str, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
-    # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
-    ...
-    if user := get_user(username):
+    if current_user != username: 
+        raise HTTPException(
+        status_code=403, 
+        detail="Don't spy on other user!")
+
+    if user := get_user(username): 
         return user.secret
+
 
 
 """
