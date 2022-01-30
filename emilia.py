@@ -106,23 +106,11 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(person_to_call: str):
     # Write your code below
     ...
-    # 1 extend parameter to include friends name and possibly user
-    # 2 check if friend is in friends[user]
-    # 3 send exception message OR iniate call
-    # Bonus: Did you mean ...?
-    return "🤙 Why don't you call them yourself!"
-
-def handle_call_unknown_action(username: str):
-    # Write your code below
-    ...
-    # 1 extend parameter to include friends name and possibly user
-    # 2 check if friend is in friends[user]
-    # 3 send exception message OR iniate call
-    # Bonus: Did you mean ...?
-    return f"{username}, I can't find this person in your contacts."
+    
+    return f"🤙 Calling {person_to_call} ..."
 
 
 def handle_reminder_action(action: str):
@@ -145,6 +133,18 @@ def handle_unknown_action(action: str):
 
 #######
 # New functions
+def handle_call_unknown_action(username: str):
+    # Write your code below
+    ...
+    # 1 extend parameter to include friends name and possibly user
+    # 2 check if friend is in friends[user]
+    # 3 send exception message OR iniate call
+    # Bonus: Did you mean ...?
+    return f"{username}, I can't find this person in your contacts."
+
+def handle_error(): 
+    return "Ooops, something went wrong! Please reload the page (:"
+
 def call_API(payload: str, api_url: str):
     headers = {"Authorization": f"Bearer {API_TOKEN}"}
     data = json.dumps(payload)
@@ -215,6 +215,7 @@ def task3_action(request: ActionRequest):
     ### ACTUAL CODE ### 
 
     # 0. Check user
+    username = request.username
     # CALL_API(0Shot)
     # Triage the request by processing the returned data: max(data), maybe use a dictionary with function handlers?
     # if CALL CALL_API(NER)
@@ -228,22 +229,31 @@ def task3_action(request: ActionRequest):
     # 1. Triage
     # This 0-shot API tries to classify our request.action by assigning probability to each of the TRIAGE_LABELS. 
     # We'll keep it simple for now and just trust its judgement. 
-    annotations_0shot = get_annotations_0_shot(request.action, TRIAGE_LABELS)
-    # Take the list of probabilites from the response object
-    scores_list = annotations_0shot["scores"]
-
-    # Check if request is a call
-    # To find out the desired action, we correlate the highest score back to the list of labels the API sends back as well.
+    try:
+        annotations_0shot = get_annotations_0_shot(request.action, TRIAGE_LABELS)
+        # Take the list of probabilites from the response object
+        scores_list = annotations_0shot["scores"]
+    except:
+        return handle_error()
+    
+    # Find out the desired action
+    # We correlate the highest score back to the list of labels the API sends back as well.
     # This list contains the same labels we sent to the API as TRIAGE_LABELS, but sometimes in a different order.  
     index_of_max_score = scores_list.index(max(scores_list))
     corresponding_list_of_labels = annotations_0shot["labels"]
     desired_action = corresponding_list_of_labels[index_of_max_score]
-    print("DESIRED ACTION:")
-    print(desired_action)
-    print(annotations_0shot)
-
+  
+    # 2. User wants to call, so we have to find out who. 
+    # Or whom
     if desired_action == "call": 
-        person_to_call = extract_person_to_call(request.action)
+        try:
+            person_to_call = extract_person_to_call(request.action)
+        except:
+            return handle_error()
+    
+    users_contacts = friends[request.username]
+    if person_to_call in users_contacts: return handle_call_action(person_to_call)
+    else: return handle_call_unknown_action(username)
 
 
     # return handler(request.action)
