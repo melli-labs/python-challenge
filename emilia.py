@@ -26,15 +26,14 @@ async def task1_greet(name: str, language: str = "de") -> str:
         }
 
     # Define an exception string
-    greeting_exception = f"Hallo {name}, leider spreche ich nicht '{language}'!";
+    greeting_exception = f"Hallo {name}, leider spreche ich nicht '{language}'!"
     
-    # Evaluate what message send to the human 
-    ### Version 1
+    ### Evaluate what message send to the human 
+    # Version 1
     # response = greetings_translations[language] if language in greetings_translations else greeting_exception; 
+    # return response
 
-    # return response;
-
-    ### Version 2
+    # Version 2
     # Another way of doing it. More python-esque?
     return greetings_translations.get(language, greeting_exception)
 
@@ -52,7 +51,7 @@ def camelize(key: str):
     ...
     
     ### This code is supposed to work for strings with  any_number_of_snake_segments 
-    # Split the key into a list and get rid of the _snakey_bits_
+    # Split the key-string into its parts and get rid of the _snakey_bits_ at the same time
     key_list = key.split("_")
     # Capitalize the strings in this list, starting with the second one
     key_list_camelized = [part.capitalize() if index > 0 else part for index,part in enumerate(key_list)]
@@ -78,8 +77,8 @@ from pydantic import BaseModel
 
 #######
 # Sections added by me are marked with 7 #s
-# Some setup.
-# We call the huggingface API to use some NLP models. 
+#
+# We get our token to call the huggingface API to use some NLP models. 
 # Details below in task3_action (comments, STRATEGY section).
 import json
 import requests
@@ -145,7 +144,7 @@ def handle_unknown_user(username: str):
 
 #######
 # New handlers
-def handle_call_unknown_action(username: str):
+def handle_call_unknown_person(username: str):
     message = f"{username}, I can't find this person in your contacts."
 
     return {"message": message}
@@ -154,6 +153,7 @@ def handle_call_unknown_action(username: str):
 def handle_error(): 
     # A token function for error handling
     return "Ooops, something went wrong! Please reload the page (:"
+
 
 # New utilities
 def call_API(payload: str, api_url: str):
@@ -201,7 +201,7 @@ def extract_person_to_call(action: str):
     person_to_call = annotations_ner[0]["word"]
 
     # Ideas for improvement
-    # Multiple checks are possible: check that the entity_group is "PER"
+    # Multiple checks are possible: check that the entity_group is "PER"; check its relationship to the word "call", check that anything even came back, etc. etc. 
     # Handle exception: list is empty -> send special response "I'm sorry, Edward, I didn't understand who you would like to call."
 
     return person_to_call
@@ -217,21 +217,18 @@ def task3_action(request: ActionRequest):
     
     ### STRATEGY ###
     # 0. Check if the user is registered - which would save us an API call
-    # 1. For triage, use a 0-shot classification model through the huggingface API (API_URL_0SHOT). This model seems to do the job out of the box.
- 
+    # 1. For triage, use a 0-shot classification model through the huggingface API (API_URL_0SHOT). This model seems to do the job very well out of the box.
     # 2. If the result is that the action is a CALL, use another API to scan the action for named entities (API_URL_NER)
-    # 2b. Check if friend is in contacts and send to the appropiate handlers
+    # 2b. Check if the named entity (aka person) is in our user's contacts and send to the appropiate handler
     # 3. If it's not a CALL we're ready to send to the appropiate handler
-    # 
-    # At this point, I keep things simple.
-   
+
 
     ### ACTUAL CODE ### 
     # Our possible actions 
     TRIAGE_LABELS = ["call", "timer", "reminder"]
-    response_message = "If you see this, we had an oopsie! Please reload the page." 
+    failsafe_message = "If you see this, we had an oopsie! Please reload the page." 
 
-    ### 0. Check user ###
+    ### 0. Check if user is registered ###
     username = request.username
     registered_users = friends.keys()
     if username not in registered_users: return handle_unknown_user(username)
@@ -241,7 +238,7 @@ def task3_action(request: ActionRequest):
     # We'll keep it simple for now and just trust its judgement. 
     try:
         annotations_0shot = get_annotations_0_shot(request.action, TRIAGE_LABELS)
-        # Take the list of probabilites from the response object
+        # Take just the list of probabilites from the larger response object
         scores_list = annotations_0shot["scores"]
         print(annotations_0shot)
     except:
@@ -255,7 +252,7 @@ def task3_action(request: ActionRequest):
         return handle_unknown_action()
     
     # We correlate the highest score back to the list of labels the API sends back as well.
-    # This list contains the same labels we sent to the API as TRIAGE_LABELS, but sometimes in a different order.  
+    # (This list contains the same labels we sent to the API as TRIAGE_LABELS, but sometimes in a different order.)
     index_of_max_score = scores_list.index(max_score)
     corresponding_list_of_labels = annotations_0shot["labels"]
     desired_action = corresponding_list_of_labels[index_of_max_score]
@@ -271,25 +268,27 @@ def task3_action(request: ActionRequest):
         # Also, check if this person is in our user's contacts
         users_contacts = friends[request.username]
         if person_to_call and person_to_call in users_contacts: return handle_call_action(person_to_call)
-        else: return handle_call_unknown_action(username)
+        else: return handle_call_unknown_person(username)
 
     ### 3. The desired action is not a CALL ###
     # We could parse it some more, but at this point let's just call the appropiate handlers
     if desired_action == "timer": return handle_timer_action()
     if desired_action == "reminder": return handle_reminder_action()
 
-    return
+    # Failsafe
+    # The function should never get to here
+    # Looking back on this, I don't like this architecture
+    return {"message": failsafe_message}
 
     # Ideas for further improvements:
-    # * We find out who our user wants to place a call to by simply filtering out any person's name present in the request. We could use some syntactic information, to make sure.
-    # * things in the future, e.g. mirroring the request in the response, as in "I'll remind you *to book the tickets* in an hour"
+    # * We find out who our user wants to call by simply filtering out any person's name present in the request. That's called speculation. We could use some syntactic information, to make sure.
     # * Use dependency parsing(?) to figure out what the reminder is for and how long is the timer. That would also allow Emilia to give fuller responses, as in "I'll remind you *to book the tickets* in an hour". This mirroring might be reassuring for the user. 
     # * Use syntactic relations to be more sure about user's intent and catch different request structures: e.g. do a co-reference resolution for pronouns with head == call
-    # * Think about edge cases like: user wants to call her friend Emilia, user has two friends named Dorian, user misspoke and wants to cancel
+    # * Think about edge cases and exceptions, like: user wants to call her friend Emilia, user has two friends named Dorian, user misspoke and wants to cancel
     # * Implement fuzzy search, or at least a "Sorry, can't find a Marty in your contacts. Did You mean Marta?" 
-    # * Implement various exception handlers so that our program doesn't crash :)
+    # * Implement various exception handlers: around failed API calls, longer processing times, etc. etc.
     # * Make the control flow clearer. Right now we have several return statements. If this gets any bigger, it will be hard to see which handler gets called under which conditions. Maybe implement a state machine? 
-    # * Improve error handling
+
 
 
 """
@@ -365,19 +364,18 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     )
 
     # Check if user is in our DB
-    # We'll just use the get_user function for this, since it was already here 
+    # We'll just use the get_user function for this, since it was already here and does the job
     user = get_user(username)
-
     # if not, send a 401
     if user is None: raise credential_exception
 
-    ### this code runs when user is in DB
-    # verify password by comparing hashes
+    ### This code runs when user is in DB
+    # Verify password by comparing hashes
     do_passwords_match = verify_password(password, user.hashed_password)
     # if passwords dont match, send 401
     if not do_passwords_match: raise credential_exception
 
-    ### this code runs when user is in DB and the password is correct
+    ### This code runs when user is in DB and the password is correct
     # send token
     payload = {
         "sub": form_data.username,
@@ -407,7 +405,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # Write your code below
     ...
 
-   
     # Check if token is valid
     # If not, raise an exception
     try:
@@ -420,7 +417,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # Check if the token is expired
     if datetime.utcnow() > datetime.utcfromtimestamp(expiration_time): raise credentials_exception
     
-
     # This code runs only if the token is valid
     user = fake_users_db[username]
 
@@ -436,6 +432,8 @@ async def read_user_secret(
     # Write your code below
     ...
 
+    # I kind of followed the structure that was layed out here already
+    # Since this sensitive route relies on another function - current_user - I would put a flag there to be extra careful. At least
     if username == current_user["username"]:
         if user := get_user(username):
             return user.secret
@@ -445,6 +443,9 @@ async def read_user_secret(
         status_code=403,
         detail="Don't spy on other user!"
     )
+
+### Ideas for improvement
+# * Deal with more exceptions
 
 
 """
