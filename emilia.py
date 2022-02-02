@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -12,11 +12,18 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
-    """Greet somebody in German, English or Spanish!"""
+async def task1_greet(name: str, language: str = "de") -> str:
+    # """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    # params = req.query_params 
+    if language=="de":
+        return f"Hallo {name}, ich bin Emilia."
+    elif language=="es":
+        return f"Hola {name}, soy Emilia."
+    elif language=="en":
+        return f"Hello {name}, I am Emilia."
+    else:
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
 
 
 """
@@ -25,13 +32,11 @@ Task 2 - snake_case to cameCase
 
 from typing import Any
 
-
 def camelize(key: str):
-    """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
-
+    sentence = key.split('_')[0] #first word isn't capitalized
+    for x in key.split('_')[1:]:
+        sentence += x.capitalize()
+    return sentence
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
@@ -42,8 +47,12 @@ async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
 """
 Task 3 - Handle User Actions
 """
-
+import string
+import re
 from pydantic import BaseModel
+# import spacy 
+# nlp = spacy.load('en_core_news_sm')
+# spacy would be the best solution for tokenization but couldnt use it in this case because of environment constrictions
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -60,151 +69,156 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(contact:str)->ActionResponse:
+    
+    return {'message' : f"🤙 Calling {contact} ..."}
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action()->ActionResponse:
+
+    return {'message' : "🔔 Alright, I will remind you!"}
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action()->ActionResponse:
+
+    return {'message' : "⏰ Alright, the timer is set!"}
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action()->ActionResponse:
 
+    return {'message' : "👀 Sorry , but I can't help with that!"}
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
-def task3_action(request: ActionRequest):
-    """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
+def task3_action(request: ActionRequest)-> ActionResponse:
+    if(request.username not in friends):
+        return {'message' : f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    callRegex = re.compile(r'call|Call')
+    remindRegex = re.compile(r'remind|Remind')
+    timerRegex = re.compile(r'timer|Timer')
+    friendsRegex = re.compile(r'|'.join(friends[request.username]))
+    # doc = (request['action'].split(" "))
+    # doc = nlp(request['action'])
+    sentence = request.action 
+    punctuations = './?!()*&$#' 
+    for p in punctuations:
+        sentence = sentence.replace(p, '') #remove punctuation
 
+    for token in sentence.split(" "):
+        if callRegex.search(token):
+            # doc2 = nlp(request['action'])
+            for token2 in sentence.split(" "):
+                if friendsRegex.search(token2):
+                    return handle_call_action(token2)
+            return {'message' : f"{request.username}, I can't find this person in your contacts."}
+        if remindRegex.search(token):
+            return handle_reminder_action()
+        if timerRegex.search(token): 
+            return handle_timer_action()
+    return handle_unknown_action()    
+
+    
 
 """
 Task 4 - Security
 """
 
-from datetime import datetime, timedelta
-from functools import partial
-from typing import Optional
+# from datetime import datetime, timedelta
+# from functools import partial
+# from typing import Optional
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+# from fastapi import Depends, HTTPException, status
+# from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+# from jose import JWTError, jwt
+# from passlib.context import CryptContext
 
-# create secret key with: openssl rand -hex 32
-SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
-ALOGRITHM = "HS256"
+# # create secret key with: openssl rand -hex 32
+# SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
+# ALOGRITHM = "HS256"
 
-encode_jwt = partial(jwt.encode, key=SECRET_KEY, algorithm=ALOGRITHM)
-decode_jwt = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALOGRITHM])
+# encode_jwt = partial(jwt.encode, key=SECRET_KEY, algorithm=ALOGRITHM)
+# decode_jwt = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALOGRITHM])
 
-_crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-verify_password = _crypt_context.verify
-hash_password = _crypt_context.hash
+# _crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# verify_password = _crypt_context.verify
+# hash_password = _crypt_context.hash
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/task4/token")
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/task4/token")
 
-fake_users_db = {
-    "stefan": {
-        "username": "stefan",
-        "email": "stefan.buchkremer@meetap.de",
-        "hashed_password": hash_password("decent-espresso-by-john-buckmann"),
-        "secret": "I love pressure-profiled espresso ☕!",
-    },
-    "felix": {
-        "username": "felix",
-        "email": "felix.andreas@meetap.de",
-        "hashed_password": hash_password("elm>javascript"),
-        "secret": "Rust 🦀 is the best programming language ever!",
-    },
-}
-
-
-class User(BaseModel):
-    username: str
-    email: str
-    hashed_password: str
-    secret: str
+# fake_users_db = {
+#     "stefan": {
+#         "username": "stefan",
+#         "email": "stefan.buchkremer@meetap.de",
+#         "hashed_password": hash_password("decent-espresso-by-john-buckmann"),
+#         "secret": "I love pressure-profiled espresso ☕!",
+#     },
+#     "felix": {
+#         "username": "felix",
+#         "email": "felix.andreas@meetap.de",
+#         "hashed_password": hash_password("elm>javascript"),
+#         "secret": "Rust 🦀 is the best programming language ever!",
+#     },
+# }
 
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+# class User(BaseModel):
+#     username: str
+#     email: str
+#     hashed_password: str
+#     secret: str
 
 
-@app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+# class Token(BaseModel):
+#     access_token: str
+#     token_type: str
 
 
-def get_user(username: str) -> Optional[User]:
-    if username not in fake_users_db:
-        return
-    return User(**fake_users_db[username])
+# @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
+# async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+#     """Allows registered users to obtain a bearer token."""
+#     # fixme 🔨, at the moment we allow everybody to obtain a token
+#     # this is probably not very secure 🛡️ ...
+#     # tip: check the verify_password above
+#     # Write your code below
+#     ...
+#     payload = {
+#         "sub": form_data.username,
+#         "exp": datetime.utcnow() + timedelta(minutes=30),
+#     }
+#     return {
+#         "access_token": encode_jwt(payload),
+#         "token_type": "bearer",
+#     }
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid authentication credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
+# def get_user(username: str) -> Optional[User]:
+#     if username not in fake_users_db:
+#         return
+#     return User(**fake_users_db[username])
 
 
-@app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
-async def read_user_secret(
-    username: str, current_user: User = Depends(get_current_user)
-):
-    """Read a user's secret."""
-    # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
-    ...
-    if user := get_user(username):
-        return user.secret
+# async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+#     credentials_exception = HTTPException(
+#         status_code=status.HTTP_401_UNAUTHORIZED,
+#         detail="Invalid authentication credentials",
+#         headers={"WWW-Authenticate": "Bearer"},
+#     )
+#     # check if the token 🪙 is valid and return a user as specified by the tokens payload
+#     # otherwise raise the credentials_exception above
+#     # Write your code below
+#     ...
+
+
+# @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
+# async def read_user_secret(
+#     username: str, current_user: User = Depends(get_current_user)
+# ):
+#     """Read a user's secret."""
+#     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
+#     # Write your code below
+#     ...
+#     if user := get_user(username):
+#         return user.secret
 
 
 """
