@@ -15,11 +15,12 @@ Task 1 - Warmup
 async def task1_greet(name: str, language : str ="de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    if language=="de":
+    # Only write code below? Method input needed to be changed
+    if language == "de":
         return f"Hallo {name}, ich bin Emilia."
-    elif language=="en":
+    elif language == "en":
         return f"Hello {name}, I am Emilia."
-    elif language=="es":
+    elif language == "es":
         return f"Hola {name}, soy Emilia."
     else:
         return f"Hallo Ben, leider spreche ich nicht '{language}'!"
