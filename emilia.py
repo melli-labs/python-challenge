@@ -15,7 +15,6 @@ Task 1 - Warmup
 async def task1_greet(name: str, language : str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    # Only write code below? Method input needed to be changed
     if language == "de":
         return f"Hallo {name}, ich bin Emilia."
     elif language == "en":
@@ -69,28 +68,27 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(action: str, username: str):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    for friend in friends[username]:
+        if friend in action:
+            return f"🤙 Calling {friend}..."
+    return "{message}: {username}, I can't find this person in your contacts."
 
 
 def handle_reminder_action(action: str):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    return "{message}: 🔔 Alright, I will remind you!"
 
 
 def handle_timer_action(action: str):
     # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    return "{message}: ⏰ Alright, the timer is set!"
 
 
 def handle_unknown_action(action: str):
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    return "{message}: 👀 Sorry , but I can't help with that!"
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
