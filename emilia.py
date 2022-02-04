@@ -27,7 +27,7 @@ async def task1_greet(name: str) -> str:
 
 
 """
-Task 2 - snake_case to cameCase
+Task 2 - snake_case to camelCase
 """
 
 from typing import Any
@@ -36,7 +36,8 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
+    components = key.split('_')
+    components[0] + ''.join(x.title() for x in components[1:])
     return key
 
 
