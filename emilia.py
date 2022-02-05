@@ -68,44 +68,46 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str, username: str):
+def handle_call_action(name: str, action: str):
     # Write your code below
-    for friend in friends[username]:
+    for friend in friends[name]:
         if friend in action:
-            return f"🤙 Calling {friend}..."
-    return "{message}: {username}, I can't find this person in your contacts."
+            return f"🤙 Calling {friend} ..."
+    return f"{name}, I can't find this person in your contacts."
 
 
-def handle_reminder_action(action: str):
+
+def handle_reminder_action(name: str, action: str):
     # Write your code below
-    return "{message}: 🔔 Alright, I will remind you!"
+    return "🔔 Alright, I will remind you!"
 
 
-def handle_timer_action(action: str):
+def handle_timer_action(name:str, action: str):
     # Write your code below
-    return "{message}: ⏰ Alright, the timer is set!"
+    return "⏰ Alright, the timer is set!"
 
 
-def handle_unknown_action(action: str):
+def handle_unknown_action(name: str, action: str):
     # Write your code below
-    return "{message}: 👀 Sorry , but I can't help with that!"
+    return "👀 Sorry , but I can't help with that!"
+
+
+def handle_unknown_user(name: str, action:str):
+    # New method created to handle unknown user
+    return f"Hi {name}, I don't know you yet. But I would love to meet you!"
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    if request.username not in friends:
-        return {'message': f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
-    else:
-        if "call" in request.action.lower():
-            return {'message':handle_call_action(request.username, request.action)}
-        if "remind" in request.action.lower():
-            return {'message':handle_reminder_action(request.username, request.action)}
-        if "time" in request.action.lower() or "clock" in request.action.lower():
-            return {'message':handle_timer_action(request.username, request.action)}
+    if request.username not in friends.keys():
+        return {'message':handle_unknown_user(request.username, request.action)}
+    if "call" in request.action.lower():
+        return {'message':handle_call_action(request.username, request.action)}
+    if "remind" in request.action.lower():
+        return {'message':handle_reminder_action(request.username, request.action)}
+    if "time" in request.action.lower() or "clock" in request.action.lower():
+        return {'message':handle_timer_action(request.username, request.action)}
 
     return {'message':handle_unknown_action(request.username, request.action)}
 
