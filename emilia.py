@@ -97,19 +97,17 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
+    if request.username not in friends:
+        return {'message': f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
+    else:
+        if "call" in request.action.lower():
+            return {'message':handle_call_action(request.username, request.action)}
+        if "remind" in request.action.lower():
+            return {'message':handle_reminder_action(request.username, request.action)}
+        if "time" in request.action.lower() or "clock" in request.action.lower():
+            return {'message':handle_timer_action(request.username, request.action)}
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    return {'message':handle_unknown_action(request.username, request.action)}
 
 
 """
