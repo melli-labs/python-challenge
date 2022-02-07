@@ -13,6 +13,9 @@ python-multipart = "^0.0.5"
 python-jose = { extras = ["cryptography"], version = "^3.3.0" }
 passlib = { extras = ["bcrypt"], version = "^1.7.4" }
 tomlkit = "^0.7.2"
+truecase = "^0.0.14"
+contractions = "^0.1.66"
+numpy = "^1.22.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
