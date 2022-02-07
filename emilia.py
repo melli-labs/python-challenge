@@ -1,10 +1,15 @@
 from fastapi import FastAPI
+from typing import Optional
+import utils as utils
+import secrets
+import re
+import utils as reg
+import string
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
     description="Help Emilia 👩 to fix our tests and get a job interview 💼🎙️!",
 )
-
 
 """
 Task 1 - Warmup
@@ -12,11 +17,17 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: Optional[str] = None) -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    if language == 'en':
+        return f"Hello {name}, I am Emilia."
+    elif language == 'de' or language is None:
+        return f"Hallo {name}, ich bin Emilia."
+    elif language == 'es':
+        return f"Hola {name}, soy Emilia."
+    else:
+        return f"Hallo {name}, leider spreche ich nicht 'ita'!"
 
 
 """
@@ -29,8 +40,11 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    # split underscore using split
+    temp = key.split('_')
+    # joining result
+    result = temp[0] + ''.join(ele.title() for ele in temp[1:])
+    return result
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -60,49 +74,59 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(action: str, caller_name: str, username: str):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    if username in friends:
+        if caller_name in friends[username]:
+            return ActionResponse(message = f'🤙 Calling {caller_name} ...')
+        else:
+            return ActionResponse(message = f"{username}, I can't find this person in your contacts.")
+    else:
+        return ActionResponse(message=f"Hi {username}, I don't know you yet. But I would love to meet you!")
 
 
-def handle_reminder_action(action: str):
+def handle_reminder_action(action: str, username: str):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    if username in friends:
+        return ActionResponse(message = "🔔 Alright, I will remind you!")
+    else:
+        return ActionResponse(message=f"Hi {username}, I don't know you yet. But I would love to meet you!")
 
 
-def handle_timer_action(action: str):
+def handle_timer_action(action: str, username:str):
     # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    if username in friends:
+        return ActionResponse(message = "⏰ Alright, the timer is set!")
+    else:
+        return ActionResponse(message=f"Hi {username}, I don't know you yet. But I would love to meet you!")
 
 
-def handle_unknown_action(action: str):
+def handle_unknown_action(action: str, username:str):
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    if username in friends:
+        return ActionResponse(message = "👀 Sorry , but I can't help with that!")
+    else:
+        return ActionResponse(message=f"Hi {username}, I don't know you yet. But I would love to meet you!")
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
-def task3_action(request: ActionRequest):
+def task3_action(request: ActionRequest) -> str:
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    request.action = utils.normalize_input(request.action)
+    tokenized_action = request.action.split()
+    if 'timer' in tokenized_action:
+        return handle_timer_action(request.action, request.username)
+    elif 'remind' in tokenized_action:
+        return handle_reminder_action(request.action, request.username)
+    elif 'call' in tokenized_action:
+        call_name = utils.entities(request.action)
+        return handle_call_action(request.action, call_name, request.username)
+    else:
+        return handle_unknown_action(request.action, request.username)
 
 
 """
@@ -159,6 +183,14 @@ class Token(BaseModel):
     token_type: str
 
 
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+
+class UserInDB(User):
+    hashed_password: str
+
+
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
@@ -166,7 +198,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
+    user_dict = fake_users_db.get(form_data.username)
+    if not user_dict:
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    user = UserInDB(**user_dict)
+    if not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
@@ -183,28 +221,58 @@ def get_user(username: str) -> Optional[User]:
     return User(**fake_users_db[username])
 
 
+def fake_decode_token(token):
+    # This doesn't provide any security at all
+    # Check the next version
+    user = get_user(token)
+    return user
+
+
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    # user = fake_decode_token(token)
+    # if not user:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Invalid authentication credentials",
+    #         headers={"WWW-Authenticate": "Bearer"},
+    #     )
+    # # check if the token 🪙 is valid and return a user as specified by the tokens payload
+    # # otherwise raise the credentials_exception above
+    # # Write your code below
+    # return user
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid authentication credentials",
+        detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALOGRITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    user = get_user(username=token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
-    username: str, current_user: User = Depends(get_current_user)
+        username: str, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
-    if user := get_user(username):
+    user = get_user(username)
+    if user == current_user:
         return user.secret
+    else:
+        raise HTTPException(
+            status_code=403, detail="Don't spy on other user!"
+        )
 
 
 """

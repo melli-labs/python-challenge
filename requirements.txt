@@ -1,0 +1,119 @@
+anyascii==0.3.0
+anyio @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/6b/76/36/9d4e71d724afcb96de80d8be41b0d8df767c03d12a5c101e02dcf075e2/anyio-3.4.0-py3-none-any.whl
+asgiref @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/c3/92/1c/3d42ce7ad1e9e2aa1621c3fa8ebc5e21bd880a768bd691fb4f0356baa8/asgiref-3.4.1-py3-none-any.whl
+astroid @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/9e/c5/de/b8d3715877478fbc72a5213afcb44d318169f2943280b75e99b03bb9a4/astroid-2.9.0-py3-none-any.whl
+attrs @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/6f/a9/ee/569c37f69a8c365ee41d2340aeac0214ee8c0086b8d8db43a21545204b/attrs-21.2.0-py2.py3-none-any.whl
+bcrypt @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/b9/50/c3/ba3a3f3f202cf25e6e110c6033ca25a523a99a0a7bb2ba160264b448dc/bcrypt-3.2.0-cp36-abi3-macosx_10_9_x86_64.whl
+black @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/24/fc/6b/230b21844ab2585833fa572d6ae210dabd36b7eab47f13ee68aa4227cc/black-21.12b0-py3-none-any.whl
+blis @ file:///Users/runner/miniforge3/conda-bld/cython-blis_1636053629560/work
+brotlipy @ file:///Users/runner/miniforge3/conda-bld/brotlipy_1636012303255/work
+CacheControl @ file:///home/conda/feedstock_root/build_artifacts/cachecontrol_1636141468892/work
+cachy==0.3.0
+catalogue @ file:///Users/runner/miniforge3/conda-bld/catalogue_1638867381951/work
+certifi==2021.10.8
+cffi @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/croot-2p6q7e2r/cffi_1642701115063/work
+charset-normalizer @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/9e/1a/c0/f7635922644ab43cdae873172296c99b00796f2e281669e0fb7516bf88/charset_normalizer-2.0.9-py3-none-any.whl
+cleo @ file:///home/conda/feedstock_root/build_artifacts/cleo_1639678626660/work
+click==8.0.3
+clikit @ file:///home/conda/feedstock_root/build_artifacts/clikit_1591735638473/work
+colorama @ file:///home/conda/feedstock_root/build_artifacts/colorama_1602866480661/work
+contractions==0.1.66
+crashtest @ file:///home/conda/feedstock_root/build_artifacts/crashtest_1643220351006/work
+cryptography @ file:///Users/runner/miniforge3/conda-bld/cryptography_1639699339442/work
+cymem @ file:///Users/runner/miniforge3/conda-bld/cymem_1636053273173/work
+dataclasses @ file:///home/conda/feedstock_root/build_artifacts/dataclasses_1628958434797/work
+de-core-news-sm @ https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.2.0/de_core_news_sm-3.2.0-py3-none-any.whl
+distlib @ file:///home/conda/feedstock_root/build_artifacts/distlib_1638990147493/work
+ecdsa @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/4c/85/92/313473c85e5cdbea10138cab1cbf64bcccc5a53a853242b50e6b24061a/ecdsa-0.17.0-py2.py3-none-any.whl
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.2.0/en_core_web_sm-3.2.0-py3-none-any.whl
+fastapi @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/b1/97/49/3a46a5b4df01cdc675450e9fe73a45c93fc7aa0d0aa949a3fa56528677/fastapi-0.70.1-py3-none-any.whl
+filelock @ file:///home/conda/feedstock_root/build_artifacts/filelock_1641470428964/work
+future-fstrings @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/27/df/b3/f70701fbf4c0dc732f9fb4feae41b0c4d904fc6173b0ddf6944b7efa7a/future_fstrings-1.2.0-py2.py3-none-any.whl
+h11 @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/bc/67/35/dab5a305c7a43c7a517d86674f35006dbb43c6746d19f419698f568164/h11-0.12.0-py3-none-any.whl
+html5lib @ file:///home/conda/feedstock_root/build_artifacts/html5lib_1592930327044/work
+httpcore @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/80/b7/f8/a7ecc798c4cbc430f02b33f231b134d7403dbec2c25e54dcc1f2b69cd1/httpcore-0.14.3-py3-none-any.whl
+httptools @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/96/e8/d7/9a68afeced2892a7dc8d23ce82081c3c598811a4eee9fc74386da8e938/httptools-0.3.0-cp39-cp39-macosx_10_9_x86_64.whl
+httpx @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/af/13/c9/2325a9f5b5eb1ee90166dc74dbcab4c3faf7f154f8a15a7ce9c55ae162/httpx-0.21.1-py3-none-any.whl
+idna @ file:///home/conda/feedstock_root/build_artifacts/idna_1642433548627/work
+iniconfig @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/fa/b0/c6/10cfac68c9e6de9d2a1678366ca89fd9292b362c1760dbe758e41691cb/iniconfig-1.1.1-py2.py3-none-any.whl
+isort @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/9d/c0/d5/617ee6ec6b065b9a3c8c3f7a0b06604f1a47738904535923554e135a7d/isort-5.10.1-py3-none-any.whl
+Jinja2 @ file:///home/conda/feedstock_root/build_artifacts/jinja2_1636510082894/work
+joblib @ file:///tmp/build/80754af9/joblib_1635411271373/work
+keyring @ file:///Users/runner/miniforge3/conda-bld/keyring_1637093153330/work
+langcodes @ file:///home/conda/feedstock_root/build_artifacts/langcodes_1636741340529/work
+lazy-object-proxy @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/b6/ee/dc/2b95e80dc2677ae8aab4924c7e2f05c8ff3d17ebfd615a2daac5e790a4/lazy_object_proxy-1.7.1-cp39-cp39-macosx_10_9_x86_64.whl
+lockfile==0.12.2
+MarkupSafe @ file:///Users/runner/miniforge3/conda-bld/markupsafe_1635833678538/work
+mccabe @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/96/5e/5f/21ae5296697ca7f94de4da6e21d4936d74029c352a35202e4c339a4253/mccabe-0.6.1-py2.py3-none-any.whl
+mkl-fft==1.3.1
+mkl-random @ file:///opt/concourse/worker/volumes/live/0cda23d8-7460-44b2-7e5d-3c76a8a0ca7e/volume/mkl_random_1626186083266/work
+mkl-service==2.4.0
+msgpack @ file:///Users/runner/miniforge3/conda-bld/msgpack-python_1637771602173/work
+murmurhash @ file:///Users/runner/miniforge3/conda-bld/murmurhash_1636019707432/work
+mypy-extensions @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/92/45/bf/1807ce854ff668d92602207a37bfa9316def2a3f257bd03c4c5be4bc9b/mypy_extensions-0.4.3-py2.py3-none-any.whl
+networkx @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/e7/57/a4/7a3915ad1d085b41bfea9e57ab499d669e672371bd918539aa1ef26c1c/networkx-2.6.3-py3-none-any.whl
+nltk==3.6.7
+numpy @ file:///opt/concourse/worker/volumes/live/21fb9bb9-9731-4901-4403-2bc27cc2cc33/volume/numpy_and_numpy_base_1634106739792/work
+packaging @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/47/3f/ce/b240169f7d8bef1ff24a0269b709721ce86543c2ec25e0b6adb2c2d7ac/packaging-21.3-py3-none-any.whl
+passlib @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/77/4c/ef/ede00a25f152c64431d284f4aefa4fa894ca004c6602e063ca7a521447/passlib-1.7.4-py2.py3-none-any.whl
+pastel @ file:///home/conda/feedstock_root/build_artifacts/pastel_1640899049124/work
+pathspec @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/0a/67/21/620031f7f2938bad77b057a68a4c2a334542a7402a3214ed48690caf8c/pathspec-0.9.0-py2.py3-none-any.whl
+pathy @ file:///home/conda/feedstock_root/build_artifacts/pathy_1635227809952/work
+pexpect @ file:///home/conda/feedstock_root/build_artifacts/pexpect_1602535608087/work
+pkginfo @ file:///home/conda/feedstock_root/build_artifacts/pkginfo_1638813452194/work
+platformdirs @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/e1/59/0b/22d8aa7abf81893c008cf163b80149f535966cf2bde442c26abceac0cb/platformdirs-2.4.0-py3-none-any.whl
+pluggy @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/81/78/ca/13f743a3628faf5a0b7f021efb45f2193acba3a13663d498f6b34bf02e/pluggy-1.0.0-py2.py3-none-any.whl
+poetry @ file:///Users/runner/miniforge3/conda-bld/poetry_1639499495380/work
+poetry-core @ file:///Users/runner/miniforge3/conda-bld/poetry-core_1641428783864/work
+preshed @ file:///Users/runner/miniforge3/conda-bld/preshed_1636077834933/work
+ptyprocess @ file:///home/conda/feedstock_root/build_artifacts/ptyprocess_1609419310487/work/dist/ptyprocess-0.7.0-py2.py3-none-any.whl
+py @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/b3/5c/47/ba5a596e01a2b61fa2daa6a438252483ad8c04e6c99e5dc22eaf8a489a/py-1.11.0-py2.py3-none-any.whl
+pyahocorasick==1.4.2
+pyasn1 @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/7b/3a/54/42ce43b579bda01b9d79022fb733811594441e7a32e9f9a5a98f672bdc/pyasn1-0.4.8-py2.py3-none-any.whl
+pycparser @ file:///home/conda/feedstock_root/build_artifacts/pycparser_1636257122734/work
+pydantic @ file:///Users/runner/miniforge3/conda-bld/pydantic_1636021390138/work
+pylev @ file:///home/conda/feedstock_root/build_artifacts/pylev_1641226376343/work
+pylint @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/43/5c/4e/ba205278514b95a9fe28bb7116331cf73fa721f6ebd638fb990920aeab/pylint-2.12.2-py3-none-any.whl
+pyOpenSSL @ file:///home/conda/feedstock_root/build_artifacts/pyopenssl_1643496850550/work
+pyparsing @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/61/f1/da/6428e68d48dbbc9e9b942cf2dfb6b5a7faa052423078aae46465c3c8e0/pyparsing-3.0.6-py3-none-any.whl
+PySocks @ file:///Users/runner/miniforge3/conda-bld/pysocks_1635862544510/work
+pytest @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/28/be/f1/ce8fa22c989106fc7c1ee7fa31d55d7f31aee1c58c63b2a43670601b79/pytest-6.2.5-py3-none-any.whl
+pytest-asyncio @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/2f/3a/7e/4d4b12b8cefb409f4b157f18ef0c57b04cb97b004d9ee23a29fe4a440f/pytest_asyncio-0.16.0-py3-none-any.whl
+pytest-depends @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/5b/16/0d/8c501694fc19542628adc2d263370a330d66d1f53a8e479597b6108487/pytest_depends-1.0.1-py3-none-any.whl
+python-dotenv @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/5b/d0/1b/25c6bbc2c828652b337720dc85e45350ab608aae80057b49ce5c6a0c7b/python_dotenv-0.19.2-py2.py3-none-any.whl
+python-jose @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/fe/e8/75/0e20e3abcb4eb0055c7aa090fcfd583690050b04a813a6df50f0e480f2/python_jose-3.3.0-py2.py3-none-any.whl
+python-multipart @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/25/4c/ff/9a5ef909bebdea8556009425c7a3580430e2a78188c696dbaeda67ff38/python-multipart-0.0.5.tar.gz
+PyYAML @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/34/22/0a/c2c23086eb908baf4d8ba853dbe69485d068f3b61fecbbf9b48a00183a/PyYAML-6.0-cp39-cp39-macosx_10_9_x86_64.whl
+regex==2022.1.18
+requests @ file:///home/conda/feedstock_root/build_artifacts/requests_1641580202195/work
+requests-toolbelt==0.9.1
+rfc3986 @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/d8/81/cb/edf693777f4e4262771048d0f39711ad08a38d6a1c049c0426f5783791/rfc3986-1.5.0-py2.py3-none-any.whl
+rsa @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/29/ba/41/0ee0fcca877c94f32799d12775b513c1314a9712a5c2833dc5bacff2ab/rsa-4.8-py3-none-any.whl
+shellingham @ file:///home/conda/feedstock_root/build_artifacts/shellingham_1612179560728/work
+six @ file:///home/conda/feedstock_root/build_artifacts/six_1620240208055/work
+smart-open @ file:///home/conda/feedstock_root/build_artifacts/smart_open_1630238320325/work
+sniffio @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/d5/26/da/4c1b03b71c2d3fdf83bb7c73a0ddb8cf8071e4633d6d1193909c780cc2/sniffio-1.2.0-py3-none-any.whl
+spacy @ file:///Users/runner/miniforge3/conda-bld/spacy_1642167467758/work
+spacy-legacy @ file:///home/conda/feedstock_root/build_artifacts/spacy-legacy_1625687473390/work
+spacy-loggers @ file:///home/conda/feedstock_root/build_artifacts/spacy-loggers_1634809367310/work
+srsly @ file:///Users/runner/miniforge3/conda-bld/srsly_1638879767772/work
+starlette @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/99/0b/ae/696e46391a601d6c31d062a296c321cfa94d5b1c1dafd0bef9434752c5/starlette-0.16.0-py3-none-any.whl
+textsearch==0.0.21
+thinc @ file:///Users/runner/miniforge3/conda-bld/thinc_1638980262857/work
+toml @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/6b/6a/c9/53b19f7870a77d855e8b05ecdc98193944e5d246dafe11bbcad850ecba/toml-0.10.2-py2.py3-none-any.whl
+tomli @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/ac/ac/b1/30c3dea8350b0dd2f05e88ef2753e8f7b7437a2b2a2775ddac38c73480/tomli-1.2.3-py3-none-any.whl
+tomlkit @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/fd/06/32/b79e75623225a9b5af79899482b9c2933c2fa2c6fb0eff80fcec10ae48/tomlkit-0.7.2-py2.py3-none-any.whl
+tqdm @ file:///tmp/build/80754af9/tqdm_1635330843403/work
+truecase==0.0.14
+typer @ file:///home/conda/feedstock_root/build_artifacts/typer_1630326630489/work
+typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/typing_extensions_1638334978229/work
+urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1641584929973/work
+uvicorn @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/51/50/48/272a88655de9d171a69860ddd1e00e0cf6554702cea70d1b409f9d0911/uvicorn-0.16.0-py3-none-any.whl
+uvloop @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/57/29/6c/535d75644904c3830fc37f5d0714984c41e073a9e13f8217a21ed320ac/uvloop-0.16.0-cp39-cp39-macosx_10_9_x86_64.whl
+virtualenv @ file:///Users/runner/miniforge3/conda-bld/virtualenv_1643246313089/work
+wasabi @ file:///home/conda/feedstock_root/build_artifacts/wasabi_1638865582891/work
+watchgod @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/c3/91/37/e272b660df384c56daddbf21d710461aa2249f2c6432ddf2d49e975550/watchgod-0.7-py3-none-any.whl
+webencodings==0.5.1
+websockets @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/99/e5/9a/a4284de14dcab7eb19c4234f4b121534a25fab698bf3291fc290f5d39f/websockets-10.1-cp39-cp39-macosx_10_9_x86_64.whl
+wrapt @ file:///Users/lstrauch/Library/Caches/pypoetry/artifacts/ba/1e/e4/5cf7d09568503d60c13636e83332a06ff289571ec166c18c6d8e229036/wrapt-1.13.3-cp39-cp39-macosx_10_9_x86_64.whl
+xx-ent-wiki-sm @ https://github.com/explosion/spacy-models/releases/download/xx_ent_wiki_sm-3.2.0/xx_ent_wiki_sm-3.2.0-py3-none-any.whl
