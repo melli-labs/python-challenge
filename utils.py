@@ -5,6 +5,7 @@ import re
 nltk.download('maxent_ne_chunker')
 nltk.download('words')
 nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
 
 
 # make upper and lower case correctly for contractions
