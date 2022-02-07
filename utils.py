@@ -4,6 +4,7 @@ import nltk
 import re
 nltk.download('maxent_ne_chunker')
 nltk.download('words')
+nltk.download('punkt')
 
 
 # make upper and lower case correctly for contractions
