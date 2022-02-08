@@ -102,14 +102,14 @@ def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     if request.username not in friends.keys():
         return {'message':handle_unknown_user(request.username, request.action)}
-    if "call" in request.action.lower():
+    elif "call" in request.action.lower():
         return {'message':handle_call_action(request.username, request.action)}
-    if "remind" in request.action.lower():
+    elif "remind" in request.action.lower():
         return {'message':handle_reminder_action(request.username, request.action)}
-    if "time" in request.action.lower() or "clock" in request.action.lower():
+    elif "time" in request.action.lower() or "clock" in request.action.lower():
         return {'message':handle_timer_action(request.username, request.action)}
-
-    return {'message':handle_unknown_action(request.username, request.action)}
+    else:
+        return {'message':handle_unknown_action(request.username, request.action)}
 
 
 """
