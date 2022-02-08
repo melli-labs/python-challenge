@@ -68,33 +68,33 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(name: str, action: str):
+def handle_call_action(username: str, action: str):
     # Write your code below
-    for friend in friends[name]:
+    for friend in friends[username]:
         if friend in action:
             return f"🤙 Calling {friend} ..."
-    return f"{name}, I can't find this person in your contacts."
+    return f"{username}, I can't find this person in your contacts."
 
 
 
-def handle_reminder_action(name: str, action: str):
+def handle_reminder_action(username: str, action: str):
     # Write your code below
     return "🔔 Alright, I will remind you!"
 
 
-def handle_timer_action(name:str, action: str):
+def handle_timer_action(username:str, action: str):
     # Write your code below
     return "⏰ Alright, the timer is set!"
 
 
-def handle_unknown_action(name: str, action: str):
+def handle_unknown_action(username: str, action: str):
     # Write your code below
     return "👀 Sorry , but I can't help with that!"
 
 
-def handle_unknown_user(name: str, action:str):
+def handle_unknown_user(username: str, action:str):
     # New method created to handle unknown user
-    return f"Hi {name}, I don't know you yet. But I would love to meet you!"
+    return f"Hi {username}, I don't know you yet. But I would love to meet you!"
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
