@@ -143,7 +143,7 @@ class TestTask3:
         )
         assert response.status_code == 200
         assert response.json() == {
-            "message": "👀 Sorry , but I can't help with that!",
+            "message": "👀 Sorry, but I can't help with that!",
         }
 
     async def test_unknown_user(self, async_client):
