@@ -65,6 +65,7 @@ friends = {
 }
 
 
+
 class ActionRequest(BaseModel):
     username: str
     action: str
@@ -74,28 +75,37 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(action: str, username: str):
+    specific_friend_list = friends[username]
+    response_message = {
+        "message": f"{username}, I can't find this person in your contacts."
+    }
+
+    for contact in specific_friend_list:
+        if contact.lower() in action.lower():
+            response_message = {"message": f"🤙 Calling {contact} ..."}
+            break
+
+    
+    return response_message
 
 
 def handle_reminder_action(action: str):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+
+    return {"message": "🔔 Alright, I will remind you!"}
 
 
 def handle_timer_action(action: str):
     # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    
+    return {"message": "⏰ Alright, the timer is set!"}
 
 
 def handle_unknown_action(action: str):
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    
+    return {"message": "👀 Sorry , but I can't help with that!"}
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -104,18 +114,27 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
+    #Defaults to unknown handler if we cannot find any intent match
+    handler = handle_unknown_action
+    handler_keyword_pairs = {
+        #This lambda function calls call handler with the username to make it able to check contacts of the user 
+        # and respond with their name when necessary
+        #Having a lambda function for that makes us able to keep our general handling approach
+        'call': lambda action : handle_call_action(action, request.username), 
+        'timer': handle_timer_action,
+        'remind': handle_reminder_action
+    }
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
+    #We don't know this user
+    if request.username not in friends:
+        return {"message": f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
+    
+    else:
+        for key in handler_keyword_pairs.keys():
+            #action contains a handler keyword
+            if key in request.action.lower(): 
+                handler = handler_keyword_pairs[key]
+                break
     return handler(request.action)
 
 
