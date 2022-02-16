@@ -15,16 +15,16 @@ Task 1 - Warmup
 async def task1_greet(name: str, language: str = 'de') -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    greetingMessage = f"Hallo {name}, leider spreche ich nicht '{language}'!"    
+    greeting_message = f"Hallo {name}, leider spreche ich nicht '{language}'!"    
     #Easily extendable. New languages can be added without affecting previous ones
     if language == 'de':
-        greetingMessage = f"Hallo {name}, ich bin Emilia."
+        greeting_message = f"Hallo {name}, ich bin Emilia."
     elif language == 'en':
-        greetingMessage = f"Hello {name}, I am Emilia."
+        greeting_message = f"Hello {name}, I am Emilia."
     elif language == 'es':
-        greetingMessage = f"Hola {name}, soy Emilia."
+        greeting_message = f"Hola {name}, soy Emilia."
     
-    return greetingMessage
+    return greeting_message
 
 """
 Task 2 - snake_case to camelCase
@@ -36,8 +36,15 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    words = key.split('_')
+
+    #This will convert the key to PascalCase
+    pascal_case = ''.join(word.capitalize() for word in words)
+
+    #converting to camelCase
+    camelized_output =  pascal_case[0].lower() + pascal_case[1:]
+
+    return camelized_output
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
