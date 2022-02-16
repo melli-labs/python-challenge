@@ -199,15 +199,23 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+    credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Incorrect username or password")
+    user = get_user(form_data.username)
+    #not real user
+    if user == None or not verify_password(form_data.password, user.hashed_password):
+        raise credentials_exception
+
+    else: 
+        payload = {
+            "sub": form_data.username,
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+        }
+        return {
+            "access_token": encode_jwt(payload),
+            "token_type": "bearer",
+        }
 
 
 def get_user(username: str) -> Optional[User]:
@@ -225,7 +233,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    payload = decode_jwt(token)
+    user = get_user(payload['sub'])
+    #expired token or invalid user
+    if user == None or datetime.fromtimestamp(payload['exp']) < datetime.utcnow():
+        raise credentials_exception
+    else:
+        return user
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -235,10 +249,12 @@ async def read_user_secret(
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
-    if user := get_user(username):
+    user = get_user(username)
+    if user and user == current_user:
         return user.secret
 
+    else:
+        raise HTTPException(status_code=403, detail="Don't spy on other user!")
 
 """
 Task and Help Routes
