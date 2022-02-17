@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response, status
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -191,22 +191,29 @@ class Token(BaseModel):
     token_type: str
 
 
-@app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+@app.post("/task4/token", summary="🔒", tags=["Task 4"])
+async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
     # fixme 🔨, at the moment we allow everybody to obtain a token
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
     ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+    data = form_data
+    try:
+        if verify_password(data.password, fake_users_db[data.username]["hashed_password"]):
+            payload = {
+                "sub": form_data.username,
+                "exp": datetime.utcnow() + timedelta(minutes=30),
+            }
+            return {
+                "access_token": encode_jwt(payload),
+                "token_type": "bearer",
+            }
+    except KeyError:
+        pass
+    response.status_code = status.HTTP_401_UNAUTHORIZED
+    return { 'detail': 'Incorrect username or password' }
 
 
 def get_user(username: str) -> Optional[User]:
@@ -215,7 +222,7 @@ def get_user(username: str) -> Optional[User]:
     return User(**fake_users_db[username])
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User :
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid authentication credentials",
@@ -224,20 +231,30 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    user = None
+    try:
+        name = decode_jwt(token)["sub"]
+        user = User(**fake_users_db[name])
+    except (JWTError, KeyError):
+        pass
+    return user
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
-    username: str, current_user: User = Depends(get_current_user)
+    response: Response,
+    username: str, 
+    current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
     ...
-    if user := get_user(username):
-        return user.secret
-
+    if current_user == get_user(username):
+        return current_user.secret
+    else:
+        response.status_code = status.HTTP_403_FORBIDDEN
+        return {"detail": "Don't spy on other user!"}
 
 """
 Task and Help Routes
