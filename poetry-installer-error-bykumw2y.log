@@ -1,6 +1,0 @@
-/home/agrajag/.local/share/pypoetry/venv/bin/python3: No module named ensurepip
-
-Traceback:
-
-  File "<stdin>", line 879, in main
-  File "<stdin>", line 517, in run
