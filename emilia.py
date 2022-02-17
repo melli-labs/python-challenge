@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -12,11 +12,19 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(request: Request, name: str) -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    query_params = request.query_params
+    lang = query_params.get("language", "")
+    if lang == "en":
+        return f"Hello {name}, I am Emilia."
+    elif lang == "de" or lang == "":
+        return f"Hallo {name}, ich bin Emilia."
+    elif lang == "es":
+        return f"Hola {name}, soy Emilia."
+    else:
+        return f"Hallo {name}, leider spreche ich nicht '{lang}'!"
 
 
 """
@@ -24,13 +32,28 @@ Task 2 - snake_case to cameCase
 """
 
 from typing import Any
+import re
 
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    underscores = [ m.start() for m in re.finditer(r"_", key) ]
+    if len(underscores) == 0:
+        return key
+    camelized = ""
+    for underscore_num in range(len(underscores)):
+        # underscores at the end get ignored/cropped
+        underscore_index = underscores[underscore_num]
+        if underscore_index + 1 >= len(key):
+            break
+        elif underscore_num == 0:
+            camelized = key[0:underscore_index]  + key[underscore_index +1: underscore_index + 2].upper()
+        else:
+            camelized += key[underscores[underscore_num - 1] + 2: underscore_index ] + key[underscore_index +1: underscore_index + 2].upper()
+    # rest of the last part is added
+    camelized += key[underscores[-1] + 2:]
+    return camelized 
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -60,28 +83,34 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(request: ActionRequest):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    request
+    try:
+        for friend in friends[request.username]:
+            if request.action.find(friend) >= 0:
+                return {'message': f'🤙 Calling {friend} ...'}
+    except KeyError:
+        pass
+    return {'message': f"{request.username}, I can't find this person in your contacts."}
 
 
 def handle_reminder_action(action: str):
     # Write your code below
     ...
-    return "🔔 I can't even remember my own stuff!"
+    return {'message': '🔔 Alright, I will remind you!'}
 
 
 def handle_timer_action(action: str):
     # Write your code below
     ...
-    return "⏰ I don't know how to read the clock!"
+    return {'message': "⏰ Alright, the timer is set!"}
 
 
 def handle_unknown_action(action: str):
     # Write your code below
     ...
-    return "🤬 #$!@"
+    return {'message': "👀 Sorry , but I can't help with that!"}
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -94,15 +123,18 @@ def task3_action(request: ActionRequest):
     from random import choice
 
     # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    if friends.get(request.username, "") == "":
+        return {'message': f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
+
+    action = request.action.lower()
+    if action.find("call") >= 0:
+        return handle_call_action(request)
+    elif action.find("remind") >= 0:
+        return handle_reminder_action(request)
+    elif action.find("timer") >= 0:
+        return handle_timer_action(request)
+    else:
+        return handle_unknown_action(request.action)
 
 
 """
