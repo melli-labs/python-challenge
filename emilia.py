@@ -12,11 +12,20 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def tasktest_greet(name: str, language ="de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    if language =="de":
+        output = f"Hallo {name}, ich bin Emilia."
+    elif language == "en":
+        output = f"Hello {name}, I am Emilia."
+    elif language == "es":
+        output = f"Hola {name}, soy Emilia."
+    else:
+        output = f"Hallo {name}, leider spreche ich nicht 'ita'!"
+
+    return output
+
 
 
 """
@@ -29,7 +38,11 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
+    key = key.split("_")
+    chars=key[0]
+    for i in range(1,len(key)):
+        chars = chars + key[i].capitalize()
+    key=chars
     return key
 
 
@@ -60,28 +73,73 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(action: str,username:str):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    user=""
+    to_call =""
+    for el in friends:
+        if username == el:
+            user=el
+            contact = friends[el]
+    if user =="":
+        string = "Hi " + username +", I don't know you yet. But I would love to meet you!"
+    else:
+        for fr in contact:
+            if fr in action:
+                to_call = fr
+        
+        if to_call=="":
+            string= user + ", I can't find this person in your contacts."
+        else:
+            string = "🤙 Calling " + to_call + " ..."
+
+    return { "message" : string }
 
 
-def handle_reminder_action(action: str):
+def handle_reminder_action(action: str,username:str):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    user=""
+    for el in friends:
+        if username == el:
+            user=el
+    if user =="":
+        string = "Hi " + username +", I don't know you yet. But I would love to meet you!"
+    else:
+        
+        string = "🔔 Alright, I will remind you!"
+
+    return {"message" : string}
 
 
-def handle_timer_action(action: str):
+def handle_timer_action(action: str,username:str):
     # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    user=""
+    for el in friends:
+        if username == el:
+            user=el
+    if user =="":
+        string = "Hi " + username +", I don't know you yet. But I would love to meet you!"
+    else:
+        
+        string = {"message" : "⏰ Alright, the timer is set!"}
+
+    ActionResponse.message=string
+    return ActionResponse.message
 
 
-def handle_unknown_action(action: str):
+def handle_unknown_action(action: str,username:str):
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    user=""
+    for el in friends:
+        if username == el:
+            user=el
+    if user =="":
+        string = "Hi " + username +", I don't know you yet. But I would love to meet you!"
+    else:
+        
+        string = "👀 Sorry , but I can't help with that!"
+
+    return {"message" : string}
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -90,19 +148,18 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
+    if "call" in request.action.lower():
+        handler=handle_call_action
+    elif "remind" in request.action.lower():
+        handler=handle_reminder_action
+    elif "timer" in request.action.lower():
+        handler=handle_timer_action
+    else:
+        handler=handle_unknown_action
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+
+
+    return handler(request.action,request.username)
 
 
 """
@@ -166,6 +223,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
+    
     ...
     payload = {
         "sub": form_data.username,
