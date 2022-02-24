@@ -12,11 +12,18 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str , language: str = "") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    if(language == ""):
+        out = f"Hallo {name}, ich bin Emilia."
+    elif(language == "en"):
+        out = f"Hello {name}, I am Emilia."
+    elif(language == "es"):
+        out = f"Hola {name}, soy Emilia."
+    else:
+        out = f"Hallo {name}, leider spreche ich nicht '{language}'!"
+    return out
 
 
 """
@@ -29,8 +36,8 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    components = key.split('_')
+    return components[0] + ''.join(x.title() for x in components[1:])
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -60,49 +67,47 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def determine_Action(action: str , userName = ""):
+    if(userName not in friends):
+        return f"Hi {userName}, I don't know you yet. But I would love to meet you!"
+    if("call" in action or "Call" in action or "Calling" in action):
+        return handle_call_action(action , userName)
+    if("Remind" in action or "remind" in action):
+        return handle_reminder_action(action)
+    if("timer" in action or "time" in action ):
+        return handle_timer_action(action)
+    return handle_unknown_action(action)
+
+
+def handle_call_action(action: str, userName : str):
+    userFriends = friends[userName]
+    outMessage = f"{userName}, I can't find this person in your contacts."
+
+    for userFriend in userFriends: 
+        if(userFriend in action):
+            outMessage = f"🤙 Calling {userFriend} ..."
+    return outMessage
 
 
 def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    return "🔔 Alright, I will remind you!"
 
 
 def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    # Write your code below 
+    return "⏰ Alright, the timer is set!"
 
 
 def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+    # Write your code below 
+    return "👀 Sorry , but I can't help with that!"
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
-    """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
-
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler.""" 
+    response = ActionResponse(message= determine_Action(request.action, request.username))  
+    return response
 
 
 """
@@ -166,7 +171,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
+    print(form_data)
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
