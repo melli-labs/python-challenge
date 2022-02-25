@@ -41,8 +41,21 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    camelizedKey = ""
+    capitalize = False
+    for character in key:
+        if character == "_":
+            capitalize = True
+            continue
+        
+        if capitalize:
+            camelizedKey += character.upper()
+            capitalize = False
+            continue
+
+        camelizedKey += character
+
+    return camelizedKey
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
