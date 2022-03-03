@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import re
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -12,11 +13,26 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    args = locals()
+    lang_dict={
+        "de":"Hallo {name}, ich bin Emilia.",
+        "en":"Hello {name}, I am Emilia.",
+        "es":"Hola {name}, soy Emilia."
+    }
+    default = "Hallo {name}, leider spreche ich nicht '{language}'!"
+    return lang_dict.get(language,default).format(**args)
+    # -> This is a more simple approach
+    if language == "de": 
+        return f"Hallo {name}, ich bin Emilia."
+    elif language == "en":
+        return f"Hello {name}, I am Emilia."
+    elif language == "es":
+        return f"Hola {name}, soy Emilia."
+    else: 
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
+
 
 
 """
@@ -25,17 +41,22 @@ Task 2 - snake_case to cameCase
 
 from typing import Any
 
+def get_match_from_wasted_match(match: re.Match):
+    """ This gets the actual matched string from the totally useless match object that noone ever needs. 
+    The only thing you'll ever need is the matched string. """
+    return match.string[match.start():match.end()]
 
-def camelize(key: str):
-    """Takes string in snake_case format returns camelCase formatted version."""
+def camelize(key: str)->str:
+    """Takes string in snake_case format and returns camelCase formatted version."""
     # Write your code below
-    ...
+    pattern = re.compile(r"_.") # any underscore followed by any character
+    key = re.sub(pattern,lambda match: get_match_from_wasted_match(match)[1].upper(), key) #we replace with a capital letter
     return key
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
-    """Takes a JSON object and transfroms all keys from snake_case to camelCase."""
+    """Takes a JSON object and transforms all keys from snake_case to camelCase."""
     return {camelize(key): value for key, value in data.items()}
 
 
@@ -60,49 +81,81 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(request: ActionRequest)->str:
+    # Write your code below
+    from string import punctuation
+    def delete_chars(text: str, chars: list[str])-> str:
+        for char in chars:
+            text = text.replace(char, "")
+            return text
+    for name in friends[request.username]:
+        if name in request.action:
+            return f"🤙 Calling {name} ..."
+    enum = list(enumerate(request.action.split(" ")))
+    for i,name in enum:
+        if not i==0:
+            if not enum[i-1][-1]=="." and name[0].isupper():
+                print("Very likely a name (at least in English):", delete_chars(name, punctuation))
+    return f"{request.username}, I can't find this person in your contacts."
+
+
+def handle_reminder_action(_: ActionRequest)->str:
     # Write your code below
     ...
-    return "🤙 Why don't you call them yourself!"
+    return "🔔 Alright, I will remind you!" # a bit lazy
 
 
-def handle_reminder_action(action: str):
+def handle_timer_action(_: ActionRequest)->str:
     # Write your code below
     ...
-    return "🔔 I can't even remember my own stuff!"
+    return "⏰ Alright, the timer is set!" # a bit lazy too
 
 
-def handle_timer_action(action: str):
+def handle_unknown_action(_: ActionRequest)->str:
     # Write your code below
     ...
-    return "⏰ I don't know how to read the clock!"
-
-
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+    return "👀 Sorry , but I can't help with that!" # also lazy
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
-
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    # of the action handlers
+    from string import punctuation
+    from typing import Callable
+    def delete_chars(text: str, chars: list[str])-> str:
+        for char in chars:
+            text = text.replace(char, "")
+            return text
+    def words(text: str)->list[str]: # a bit like tokenization. But the stemming is missing. Which might be especially useful for eg: Remind/reminder
+        text = delete_chars(text, punctuation).lower()
+        return text.split(" ") # instead of just a regular split
+    handle = Callable[[ActionRequest],str]
+    options: list[tuple[list[str],handle]]=[
+        (["call"],handle_call_action),
+        (["remind","reminder"],handle_reminder_action),
+        (["timer"],handle_timer_action)
+    ]
+    # we'll just do simple word searches. 
+    # Nothing crazy like NLP. 
+    # But if I had a dictionary or so it would be pretty easy to find out what words are likely names 
+    # also a frequency dict could be good for filtering out unimportant words and finding the most important ones. 
+    if request.username not in friends: #unknown user
+        return {
+            "message":f"Hi {request.username}, I don't know you yet. But I would love to meet you!"
+            }
+    else:
+        handler: handle = handle_unknown_action
+        ws = words(request.action)
+        for keys,func in options:
+            for k in keys:
+                if k in ws:
+                    handler = func
+                    break # very simple, in reality we would give every possible handler a likeliness score
+        return {
+            "message":handler(request)
+            }
 
 
 """
@@ -162,19 +215,21 @@ class Token(BaseModel):
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect username or password"
+    )
+    if (user:=get_user(form_data.username)) is not None and verify_password(form_data.password,user.hashed_password):
+        payload = {
+            "sub": form_data.username,
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+        }
+        return {
+            "access_token": encode_jwt(payload),
+            "token_type": "bearer",
+        }
+    else:
+        raise credentials_exception
 
 
 def get_user(username: str) -> Optional[User]:
@@ -192,7 +247,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    try:
+        payload = decode_jwt(token)
+        assert None not in (payload.get("exp"), (username:=payload.get("sub")))
+        return get_user(username)
+    except:
+        raise credentials_exception
+
+    
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -200,11 +262,17 @@ async def read_user_secret(
     username: str, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
-    # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Don't spy on other user!"
+    )
     # Write your code below
     ...
     if user := get_user(username):
-        return user.secret
+        if current_user is not None and current_user == user:
+            return user.secret
+        else:
+            raise credentials_exception
 
 
 """
@@ -223,9 +291,8 @@ messages = parse((Path(__file__).parent / "messages.toml").read_text("utf-8"))
 async def hello():
     return messages["hello"]
 
-
 identity = lambda x: x
-for i in 1, 2, 3, 4:
+for i in range(1,5):
     task = messages[f"task{i}"]
     info = partial(identity, task["info"])
     help_ = partial(identity, task["help"])
