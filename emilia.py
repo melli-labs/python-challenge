@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from typing import Optional
+import re
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -9,14 +11,22 @@ app = FastAPI(
 """
 Task 1 - Warmup
 """
-
+translations = {
+    "de": "Hallo {}, ich bin Emilia.",
+    "en": "Hello {}, I am Emilia.",
+    "es": "Hola {}, soy Emilia.",
+}
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
-    """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+async def task1_greet(name: str, language: Optional[str] = 'de') -> str:
+    """
+    Greet somebody in German, English or Spanish!
+    de is the default language If any other known lang parampeter is passed,
+    we look up the translation else we state that we do not know lang xy in German
+    """
+    if language in translations.keys():
+        return translations[language].format(name)
+    return f"Hallo {name}, leider spreche ich nicht '{language}'!"
 
 
 """
@@ -28,9 +38,8 @@ from typing import Any
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
+    constituents = key.split('_')
+    return constituents[0] + ''.join(c.title() for c in constituents[1:])
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -50,6 +59,11 @@ friends = {
     "Stefan": ["Felix", "Ben", "Philip"],
 }
 
+intents = {
+    "callContact": "call",
+    "setReminder": "remind",
+    "setTimer": "timer"
+}
 
 class ActionRequest(BaseModel):
     username: str
@@ -60,49 +74,46 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(request: ActionRequest) -> ActionResponse:
+    for contact in friends[request.username]:
+        if contact in request.action:
+            return ActionResponse(message = f"🤙 Calling {contact} ...")
+
+    return ActionResponse(message = f"{request.username}, I can't find this person in your contacts.")
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action(request: ActionRequest) -> ActionResponse:
+    return ActionResponse(message = "🔔 Alright, I will remind you!")
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action(request: ActionRequest) -> ActionResponse:
+    return ActionResponse(message = "⏰ Alright, the timer is set!")
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action(request: ActionRequest) -> ActionResponse:
+    return ActionResponse(message = "👀 Sorry , but I can't help with that!")
 
+cases = {
+    "callContact": handle_call_action,
+    "setReminder": handle_reminder_action,
+    "setTimer": handle_timer_action
+}
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
-    """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
+    """
+    We use a pretty silly and dumb rule-based system. Also this does not account for Emilia being multilingual. Obviously, fancy implementations would benefit a lot from
+    retrieval based and probalistic approaches making use of standard NLP techniques, NER (especially for the request.action) and modeling of enriched
+    training data (instead of silly string matching) :)
+    """
+    if request.username in friends.keys():
+        for intent,trigger in intents.items():
+            if trigger in request.action.lower():
+                return cases[intent](request)
+        return handle_unknown_action(request)
+    else:
+        return ActionResponse(message = f"Hi {request.username}, I don't know you yet. But I would love to meet you!")
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
 
 
 """
@@ -146,27 +157,26 @@ fake_users_db = {
     },
 }
 
-
 class User(BaseModel):
     username: str
     email: str
     hashed_password: str
     secret: str
 
-
 class Token(BaseModel):
     access_token: str
     token_type: str
 
-
+# Docs at https://fastapi.tiangolo.com/tutorial/security/simple-oauth2/ have a vanilla example :)
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
-    ...
+    userDict = fake_users_db.get(form_data.username)
+    if not userDict:
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    if not verify_password(form_data.password, fake_users_db[form_data.username]["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
@@ -176,23 +186,20 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "token_type": "bearer",
     }
 
-
 def get_user(username: str) -> Optional[User]:
-    if username not in fake_users_db:
-        return
     return User(**fake_users_db[username])
 
-
+# Check jwt.io
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
+    subject = decode_jwt(token)["sub"]
+    if not subject:
+        raise credentials_exception
+    return User(**fake_users_db[subject])
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -200,11 +207,10 @@ async def read_user_secret(
     username: str, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
-    # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
-    ...
-    if user := get_user(username):
-        return user.secret
+    if current_user == get_user(username):
+        return current_user.secret
+    else:
+        raise HTTPException(status_code=403, detail="Don't spy on other user!")
 
 
 """
