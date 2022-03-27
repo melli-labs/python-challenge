@@ -1,22 +1,34 @@
 from fastapi import FastAPI
-
+from pyparsing import Regex
+import re
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
     description="Help Emilia 👩 to fix our tests and get a job interview 💼🎙️!",
 )
 
-
 """
 Task 1 - Warmup
 """
+languages = {"greet":
+    {
+        "en":"Hello {name}, I am Emilia.",
+        "es":"Hola {name}, soy Emilia.",
+        "de":"Hallo {name}, ich bin Emilia.",
+        "ita":"Hallo {name}, leider spreche ich nicht 'ita'!",
+        "default":"Hallo {name}, leider spreche ich nicht '{language}'!"
+    }
+}
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str,language:str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    greeting_in_languages = languages["greet"]
+    greeting = greeting_in_languages["default"].format(name=name,language=language)
+    if language in greeting_in_languages:
+        greeting = greeting_in_languages[language].format(name=name)
+    return greeting
 
 
 """
@@ -28,9 +40,8 @@ from typing import Any
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
+    components = key.split('_')
+    return components[0] + ''.join(x.title() for x in components[1:])
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -50,6 +61,14 @@ friends = {
     "Stefan": ["Felix", "Ben", "Philip"],
 }
 
+def authenticate_user(func):
+    def wrapper(action_request: ActionRequest):
+        if action_request.username in friends:
+
+            return func(action_request)
+        else:
+            return f"Hi {action_request.username}, I don't know you yet. But I would love to meet you!"
+    return wrapper
 
 class ActionRequest(BaseModel):
     username: str
@@ -59,50 +78,54 @@ class ActionRequest(BaseModel):
 class ActionResponse(BaseModel):
     message: str
 
-
-def handle_call_action(action: str):
+@authenticate_user
+def handle_call_action(action_request: ActionRequest):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    
+    speech_pattern = "(?:Call my friend ([a-zA-Z]+))|(?:Can you call ([a-zA-Z]+)\?)|(?:I haven't spoken to ([a-zA-Z]+) in a long time. Can you call her?)|(?:Can you call ([a-zA-Z]+) for me\?)"
 
+    groups = re.compile(speech_pattern).findall(action_request.action)[0]
+    name = next(item for item in groups if item)
+    if name in friends[action_request.username]:
+        return f"🤙 Calling {name} ..."
+    return f"{action_request.username}, I can't find this person in your contacts." #"🤙 Why don't you call them yourself!"
 
-def handle_reminder_action(action: str):
+@authenticate_user
+def handle_reminder_action(action_request: ActionRequest):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    return "🔔 Alright, I will remind you!" #"🔔 I can't even remember my own stuff!"
 
-
-def handle_timer_action(action: str):
+@authenticate_user
+def handle_timer_action(action_request: ActionRequest):
     # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    return "⏰ Alright, the timer is set!"
 
-
-def handle_unknown_action(action: str):
+@authenticate_user
+def handle_unknown_action(action_request: ActionRequest):
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    response = {"What is the meaning of life?":"👀 Sorry , but I can't help with that!"}
+    if action_request.action in response:
+        return response[action_request.action]
+    return f"Hi {action_request.username}, I don't know you yet. But I would love to meet you!"
+
+def choose_handler(action: str):
+    action_handlers_map = {"Call":handle_call_action,"Remind":handle_reminder_action,"Timer":handle_timer_action}
+    actions_pattern = "|".join(action_handlers_map.keys())
+
+    action_keyword = re.findall(actions_pattern,action)
+    if not action_keyword:
+        return handle_unknown_action
+    return action_handlers_map[action_keyword[0]]
 
 
-@app.post("/task3/action", tags=["Task 3"], summary="🤌")
+
+@app.post("/task3/action",response_model=ActionResponse, tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    handler = choose_handler(request.action.title())
+
+    return {"message": handler(request)}
 
 
 """
@@ -171,6 +194,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
     }
+    if not ((form_data.username in fake_users_db) and verify_password(form_data.password,fake_users_db[form_data.username]["hashed_password"])):
+        raise HTTPException(401,detail="Incorrect username or password")
+
     return {
         "access_token": encode_jwt(payload),
         "token_type": "bearer",
@@ -189,9 +215,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALOGRITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    user = get_user(username=username)
+    if user is None:
+        raise credentials_exception
+    return user
     ...
 
 
@@ -203,8 +237,10 @@ async def read_user_secret(
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
     ...
-    if user := get_user(username):
-        return user.secret
+    if current_user.username == username:
+        if user := get_user(username):
+            return user.secret
+    raise HTTPException(403,detail="Don't spy on other user!")
 
 
 """
