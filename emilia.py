@@ -12,11 +12,17 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str , language:str="de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    if language=="de":
+        return f"Hallo {name}, ich bin Emilia."
+    elif language=="en":
+        return f"Hello {name}, I am Emilia."
+    elif language=="es":
+        return f"Hola {name}, soy Emilia."
+    else:
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
 
 
 """
@@ -29,14 +35,17 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
+    first,*x = key.split('_')
+    key= ''.join([first.lower(), *map(str.title, x)])
     return key
+
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
     """Takes a JSON object and transfroms all keys from snake_case to camelCase."""
     return {camelize(key): value for key, value in data.items()}
+    
 
 
 """
@@ -60,28 +69,28 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(action: str, user:str):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    for friend in friends[user]:
+        if friend.lower() in action.lower():
+            return f"🤙 Calling {friend} ..."
+        else:
+            continue
+    return f"{user}, I can't find this person in your contacts."
+        #return "🤙 Calling {user} ..."
 
 
-def handle_reminder_action(action: str):
+def handle_reminder_action(action: str, user:str):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    return "🔔 Alright, I will remind you!"
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action(action: str , user :str):
+    return "⏰ Alright, the timer is set!"
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action():
+    return "👀 Sorry , but I can't help with that!"
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -102,7 +111,18 @@ def task3_action(request: ActionRequest):
             handle_unknown_action,
         ]
     )
-    return handler(request.action)
+    if request.username in friends:
+        if "call" in request.action.lower():
+            result = handle_call_action(request.action,request.username)
+        elif "remind" in request.action.lower():
+            result = handle_reminder_action(request.action,request.username)
+        elif "timer" in request.action.lower():
+            result = handle_timer_action(request.action,request.username)
+        else:
+            result = handle_unknown_action()
+    else:
+        result = f"Hi {request.username}, I don't know you yet. But I would love to meet you!"
+    return ActionResponse(message=result)
 
 
 """
