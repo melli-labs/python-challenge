@@ -12,11 +12,20 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str = 'de') -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    # For just few languages if-elif should be ok, for more choices we could replicate "switch case" using dictionaries.
+    ...    
+    if language == 'de':
+        return f"Hallo {name}, ich bin Emilia."
+    elif language == 'es':
+        return f"Hola {name}, soy Emilia."
+    elif language == 'en':
+        return f"Hello {name}, I am Emilia."
+    else:
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
+
 
 
 """
@@ -30,7 +39,11 @@ def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
     ...
-    return key
+    key_list = key.split("_")
+    k = key_list[0]
+    for i in range(1, len(key_list)):
+        k = k + key_list[i].capitalize()
+    return k
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -60,28 +73,40 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(action: str, username: str):
     # Write your code below
     ...
-    return "🤙 Why don't you call them yourself!"
+    act = action.replace('.','').replace('?','').replace('!','').replace(',','')
+    filt = act.split()
+    name = ''
+    for word in filt:
+        if word in friends[username]:
+            name = word
+    
+    if len(name) > 0:
+        return f"🤙 Calling {name} ..."
+    else:
+        return f"{username}, I can't find this person in your contacts."
 
 
 def handle_reminder_action(action: str):
     # Write your code below
     ...
-    return "🔔 I can't even remember my own stuff!"
+    return "🔔 Alright, I will remind you!"
 
 
 def handle_timer_action(action: str):
     # Write your code below
     ...
-    return "⏰ I don't know how to read the clock!"
+    return "⏰ Alright, the timer is set!"
 
 
 def handle_unknown_action(action: str):
     # Write your code below
     ...
-    return "🤬 #$!@"
+
+    return "👀 Sorry , but I can't help with that!"
+    
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -90,20 +115,40 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
+    # create list with all actions our App is able to do
+    all_actions = ["call", "remind", "timer"]
+    # save request into string to check which action user wants to perform
+    act = request.action
+    # get only words as a list, so we can find action that user wants to perform
+    act = act.replace('?', '').replace('!', '').replace('.', '').replace(',', '').lower()
+    list_of_action = act.split()
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    user = request.username
 
+    act_to_do = ''
+    # check if the user is registered
+    if user not in friends.keys():
+        return {"message": f"Hi {user}, I don't know you yet. But I would love to meet you!"}
+    
+    # find desired action
+    for action in list_of_action:
+        if action in all_actions:
+            act_to_do = action
+    
+    # perform desired action
+    if act_to_do == 'call':
+        return {"message": handle_call_action(request.action, request.username)}
+
+    elif act_to_do == "remind":
+        return {"message": handle_reminder_action(request.action)}
+
+    elif act_to_do == "timer":
+        return {"message": handle_timer_action(request.action)}
+   
+    else:
+         return {"message": handle_unknown_action(request.action)}
+    
+    
 
 """
 Task 4 - Security
@@ -157,6 +202,16 @@ class User(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+
+def get_user(db, username: str):
+    if username in db:
+        return 
+
+
+def authenticate_user(fake_db, username: str, password: str ):
+    pass
 
 
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
