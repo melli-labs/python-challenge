@@ -205,14 +205,6 @@ class Token(BaseModel):
 
 
 
-def get_user(db, username: str):
-    if username in db:
-        return 
-
-
-def authenticate_user(fake_db, username: str, password: str ):
-    pass
-
 
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -221,21 +213,27 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+    if form_data.username not in fake_users_db:
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
 
+    if verify_password(form_data.password,fake_users_db[form_data.username]["hashed_password"]):
+        payload = {
+            "sub": form_data.username,
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+        }
+
+        return {
+            "access_token": encode_jwt(payload),
+            "token_type": "bearer",
+        }
+
+    raise HTTPException(status_code=401, detail="Incorrect username or password")
 
 def get_user(username: str) -> Optional[User]:
     if username not in fake_users_db:
-        return
-    return User(**fake_users_db[username])
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    else:
+        return User(**fake_users_db[username])
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
@@ -244,10 +242,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
     ...
+    try:
+        payload = decode_jwt(token)
+        return payload["sub"]
+
+    except: 
+        raise credentials_exception
+   
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -258,8 +264,10 @@ async def read_user_secret(
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
     ...
-    if user := get_user(username):
-        return user.secret
+    if current_user == username:
+        return fake_users_db[username]["secret"]
+    
+    raise HTTPException(status_code=403, detail="Don't spy on other user!")
 
 
 """
