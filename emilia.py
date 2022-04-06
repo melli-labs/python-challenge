@@ -1,4 +1,9 @@
+from re import sub
+from unicodedata import name
+from urllib import response
+from anyio import run_async_from_thread
 from fastapi import FastAPI
+from enum import Enum
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -6,17 +11,27 @@ app = FastAPI(
 )
 
 
+# poetry run uvicorn emilia:app --reload
+
 """
 Task 1 - Warmup
 """
 
+from typing import Optional
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: Optional[str] = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    if language == "de":
+        return f"Hallo {name}, ich bin Emilia."
+    if language == "en":
+        return f"Hello {name}, I am Emilia."
+    if language == "es":
+        return f"Hola {name}, soy Emilia."
+    else: 
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
+
 
 
 """
@@ -28,10 +43,10 @@ from typing import Any
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
+    temp = key.split('_')
+    key = temp[0] + ''.join(ele.title() for ele in temp[1:])
 
+    return key
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
@@ -39,13 +54,21 @@ async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
     return {camelize(key): value for key, value in data.items()}
 
 
+
+
+
+
+
 """
 Task 3 - Handle User Actions
 """
 
+
+
+import json
 from pydantic import BaseModel
 
-friends = {
+friends = { 
     "Matthias": ["Sahar", "Franziska", "Hans"],
     "Stefan": ["Felix", "Ben", "Philip"],
 }
@@ -61,49 +84,68 @@ class ActionResponse(BaseModel):
 
 
 def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    names = ["Sahar", "Franziska", "Hans", "Felix", "Ben", "Philip"]
+    for name in names:
+        if name.lower() in action.action.lower():
+            dictionary = {"message": f"🤙 Calling {name} ..."}
+            n = json.dumps(dictionary)
+            data = json.loads(n)
+            return data
+    else:
+        name = action.username
+        dictionary = {"message": f"{name}, I can't find this person in your contacts."}
+        n = json.dumps(dictionary)
+        data = json.loads(n)
+        return data
 
 
 def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    dictionary = {"message": "🔔 Alright, I will remind you!"}
+    return dictionary
 
 
 def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    dictionary = {"message": "⏰ Alright, the timer is set!"}
+    return dictionary
 
 
 def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+    dictionary = {"message": "👀 Sorry , but I can't help with that!",}
+    return dictionary
+
+
+def handle_unknown_user(action: str):
+    user = action.username
+    dictionary = {"message": f"Hi {user}, I don't know you yet. But I would love to meet you!"}
+    return dictionary
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
-    """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
+    names = ["Matthias", "Stefan"]
+    for name in names:
+        if name.lower() in request.username.lower():
+            res = request.action.lower()
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+            substring = "call"
+            if substring in res:
+                return handle_call_action(request) #changed from "res" to "request"
 
+            substring1= ["remind", "reminder"]
+            for sub in substring1:
+                if sub in res:
+                    return handle_reminder_action(request)
+
+            substring2= ["set", "timer"]
+            for sub in substring2:
+                if sub in res:
+                    return handle_timer_action(request)
+
+            else:
+                return handle_unknown_action(request)
+
+    else:
+        return handle_unknown_user(request)
 
 """
 Task 4 - Security

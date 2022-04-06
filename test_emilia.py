@@ -1,8 +1,8 @@
 import pytest
+
 from httpx import AsyncClient
 
 from emilia import app
-
 
 @pytest.fixture()
 async def async_client():
@@ -56,6 +56,12 @@ def test_task2_success_message():
         " 🏃 Wow, keep going! Let's see if you solve the next one too."
         " You can find it at `/task3`."
     )
+
+
+
+
+############# task 3 ################
+
 
 
 @pytest.mark.asyncio
@@ -177,6 +183,19 @@ def test_task3_success_message():
         " But if you're short on time you can already create a pull request at"
         " https://github.com/mit-emilia/hiring!"
     )
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 @pytest.mark.bonus
