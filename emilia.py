@@ -12,12 +12,18 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language="de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
     ...
-    return f"Hello {name}, I am Emilia."
-
+    if language == "de":
+        return f"Hallo {name}, ich bin Emilia."
+    elif language == "en":
+        return f"Hello {name}, I am Emilia."
+    elif language == "es":
+        return f"Hola {name}, soy Emilia."
+    else:
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
 
 """
 Task 2 - snake_case to cameCase
@@ -26,10 +32,15 @@ Task 2 - snake_case to cameCase
 from typing import Any
 
 
+
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
     ...
+    toRemove = key.find("_")
+    while toRemove > -1:
+        key = key.replace(key[toRemove:toRemove+2],key[toRemove+1].upper(),1)
+        toRemove = key.find("_")
     return key
 
 
@@ -44,6 +55,7 @@ Task 3 - Handle User Actions
 """
 
 from pydantic import BaseModel
+import re
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -60,29 +72,31 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(request: ActionRequest):
+    friendsList = friends.get(request.username)
+    for friendCandidate in friendsList:
+        if request.action.find(friendCandidate) > -1:
+           return {"message": "🤙 Calling " + friendCandidate + " ..."}
+    return {"message": request.username + ", I can't find this person in your contacts."}
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action():
+    # give 5 minutes before the event a reminder and you have to organize them to see in a calender
+    return {"message": "🔔 Alright, I will remind you!"}
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action():
+    #timer not really set (have to do so later on)
+    return {"message": "⏰ Alright, the timer is set!"}
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action():
+    #maybe set an exception or put all the unknown actions in a log, so that you can update the actions later on
+    return {"message": "👀 Sorry , but I can't help with that!"}
 
+def handle_unknown_user(user: str):
+    return {"message":f"Hi {user}, I don't know you yet. But I would love to meet you!"}
+    #return "a"
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
@@ -91,18 +105,22 @@ def task3_action(request: ActionRequest):
     #      of the action handlers
     # Write your code below
     ...
-    from random import choice
+    if not friends.keys().__contains__(request.username):
+        return handle_unknown_user(request.username)
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    patternCall = re.compile("^.*(call|Call).*$")
+    patternReminder = re.compile("^.*(remind|Remind).*$")
+    patternTimer = re.compile("^.*(Set a timer).*$")
+
+    if patternCall.match(request.action):
+        return handle_call_action(request)
+    elif patternReminder.match(request.action):
+        return handle_reminder_action()
+    elif patternTimer.match(request.action):
+        return handle_timer_action()
+    else:
+        return handle_unknown_action()
+
 
 
 """
