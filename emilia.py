@@ -1,8 +1,9 @@
 from re import sub
+from readline import parse_and_bind
 from unicodedata import name
 from urllib import response
 from anyio import run_async_from_thread
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from enum import Enum
 
 app = FastAPI(
@@ -147,6 +148,16 @@ def task3_action(request: ActionRequest):
     else:
         return handle_unknown_user(request)
 
+
+
+
+
+
+
+
+
+
+
 """
 Task 4 - Security
 """
@@ -170,7 +181,7 @@ decode_jwt = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALOGRITHM])
 _crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 verify_password = _crypt_context.verify
 hash_password = _crypt_context.hash
-
+ 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/task4/token")
 
 fake_users_db = {
@@ -188,6 +199,9 @@ fake_users_db = {
     },
 }
 
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
 
 class User(BaseModel):
     username: str
@@ -201,28 +215,47 @@ class Token(BaseModel):
     token_type: str
 
 
-@app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
-
 
 def get_user(username: str) -> Optional[User]:
     if username not in fake_users_db:
         return
     return User(**fake_users_db[username])
+
+
+def authenticate_user(username: str, password: str):
+    user = get_user(username)
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
+    return user
+
+
+@app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
+async def login(form_data: OAuth2PasswordRequestForm = Depends(OAuth2PasswordRequestForm)):
+    """Allows registered users to obtain a bearer token."""
+    # fixme 🔨, at the moment we allow everybody to obtain a token
+    # this is probably not very secure 🛡️ ...
+    # tip: check the verify_password above
+    # Write your code below
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    else:
+        payload = {
+            "sub": form_data.username,
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+        }
+        return {
+            "access_token": encode_jwt(payload),
+            "token_type": "bearer",
+        }
+
+
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
@@ -234,7 +267,20 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    try:
+        payload = decode_jwt(token)
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    user = get_user(username=token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
+
+
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -244,9 +290,16 @@ async def read_user_secret(
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
-    if user := get_user(username):
-        return user.secret
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Don't spy on other user!",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    if username != current_user.username:
+        raise credentials_exception
+    else:
+        if user := get_user(username):
+            return user.secret
 
 
 """
