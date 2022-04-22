@@ -33,8 +33,8 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    first, *others = key.split('_')
+    return ''.join([first.lower(), *map(str.title, others)])
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
