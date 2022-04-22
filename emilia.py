@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import json
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -66,27 +67,32 @@ class ActionResponse(BaseModel):
 
 def handle_call_action(action: str):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    for username in friends:
+        for name in friends[username]:
+            if name.lower() in action.action.lower():
+                resp = json.dumps({"message": f"🤙 Calling {name} ..."})
+                return json.loads(resp)
+
+    resp = json.dumps({"message": f"{action.username}, I can't find this person in your contacts."})
+    return json.loads(resp)
 
 
 def handle_reminder_action(action: str):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    return {"message": "🔔 Alright, I will remind you!"}
 
 
 def handle_timer_action(action: str):
     # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    return {"message": "⏰ Alright, the timer is set!"}
 
 
 def handle_unknown_action(action: str):
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    return {"message": "👀 Sorry , but I can't help with that!"}
 
+def handle_unknown_user(action: str):
+    return {"message": f"Hi {action.username}, I don't know you yet. But I would love to meet you!"}
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
@@ -94,19 +100,23 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
+    import re 
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    for username in friends:
+        if username.lower() in request.username.lower():
+            if re.match(".*call.*", request.action, re.IGNORECASE):
+                return handle_call_action(request)
+
+            if re.match(".*remind.*", request.action, re.IGNORECASE):
+                return handle_reminder_action(request)
+ 
+            if re.match(".*set.*", request.action, re.IGNORECASE):
+                return handle_timer_action(request)
+
+            else:
+                return handle_unknown_action(request)
+
+    return handle_unknown_user(request)
 
 
 """
