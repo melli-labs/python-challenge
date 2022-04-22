@@ -15,7 +15,6 @@ Task 1 - Warmup
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
 async def task1_greet(name: str, language: str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
     switcher = {
         "en": f"Hello {name}, I am Emilia.",
         "de": f"Hallo {name}, ich bin Emilia.",
@@ -33,7 +32,6 @@ from typing import Any
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
     first, *others = key.split('_')
     return ''.join([first.lower(), *map(str.title, others)])
 
@@ -66,7 +64,6 @@ class ActionResponse(BaseModel):
 
 
 def handle_call_action(action: str):
-    # Write your code below
     for username in friends:
         for name in friends[username]:
             if name.lower() in action.action.lower():
@@ -78,17 +75,14 @@ def handle_call_action(action: str):
 
 
 def handle_reminder_action(action: str):
-    # Write your code below
     return {"message": "🔔 Alright, I will remind you!"}
 
 
 def handle_timer_action(action: str):
-    # Write your code below
     return {"message": "⏰ Alright, the timer is set!"}
 
 
 def handle_unknown_action(action: str):
-    # Write your code below
     return {"message": "👀 Sorry , but I can't help with that!"}
 
 def handle_unknown_user(action: str):
@@ -97,9 +91,6 @@ def handle_unknown_user(action: str):
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
     import re 
 
     for username in friends:
