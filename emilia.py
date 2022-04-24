@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
-    description="Help Emilia 👩 to fix our tests and get a job interview 💼🎙️!",
+    description="Help Emilia 👩 to fix our test and get a job interviews 💼🎙️!",
 )
 
 
