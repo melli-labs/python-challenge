@@ -2,7 +2,7 @@
 name = "hiring"
 version = "1.0.0"
 description = "Fix this project and get a job at mit-emilia.de!"
-authors = ["Your Name <you@example.com>"]
+authors = ["Tymur Mudzhyri <intrueder@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
