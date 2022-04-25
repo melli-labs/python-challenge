@@ -1,3 +1,14 @@
+from tomlkit.api import parse
+from pathlib import Path
+from passlib.context import CryptContext
+from jose import JWTError, jwt
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import Depends, HTTPException, status
+from typing import Optional
+from functools import partial
+from datetime import datetime, timedelta
+from pydantic import BaseModel
+from typing import Any
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -23,8 +34,6 @@ async def task1_greet(name: str) -> str:
 Task 2 - snake_case to cameCase
 """
 
-from typing import Any
-
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
@@ -43,7 +52,6 @@ async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
 Task 3 - Handle User Actions
 """
 
-from pydantic import BaseModel
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -109,14 +117,6 @@ def task3_action(request: ActionRequest):
 Task 4 - Security
 """
 
-from datetime import datetime, timedelta
-from functools import partial
-from typing import Optional
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 # create secret key with: openssl rand -hex 32
 SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
@@ -211,10 +211,6 @@ async def read_user_secret(
 Task and Help Routes
 """
 
-from functools import partial
-from pathlib import Path
-
-from tomlkit.api import parse
 
 messages = parse((Path(__file__).parent / "messages.toml").read_text("utf-8"))
 
