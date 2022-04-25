@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 from typing import Any
 from fastapi import FastAPI
+import re
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -75,49 +76,59 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(request: ActionRequest):
+    # check friend is exist on the friend list or not
+    friend_found = [friend for friend in friends[request.username] if re.search(
+        r'\b' + friend + r'\b', request.action, re.IGNORECASE)]
+
+    if len(friend_found) > 0:
+        return f"🤙 Calling {friend_found[0]} ..."
+    else:
+        return f"{request.username}, I can't find this person in your contacts."
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action():
+    return "🔔 Alright, I will remind you!"
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action():
+    return "⏰ Alright, the timer is set!"
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action():
+    return "👀 Sorry , but I can't help with that!"
 
 
-@app.post("/task3/action", tags=["Task 3"], summary="🤌")
+def handle_unknown_user_action(username: str):
+    return f"Hi {username}, I don't know you yet. But I would love to meet you!"
+
+
+def handler(request: ActionRequest):
+
+    message = ""
+
+    if request.username not in friends:  # Check if the user is exist on the dict.
+        message = handle_unknown_user_action(request.username)
+
+    elif re.search(r'\bcall\b', request.action, re.IGNORECASE):  # Check if its an Call action
+        message = handle_call_action(request)
+
+    elif re.search(r'\bremind\b', request.action, re.IGNORECASE):  # Check if its an remind action
+        message = handle_reminder_action()
+
+    elif re.search(r'\btimer\b', request.action, re.IGNORECASE):  # Check if its an timer action
+        message = handle_timer_action()
+
+    else:  # If none of the above action exist, call unknown actionxs.
+        message = handle_unknown_action()
+
+    return {'message': message}
+
+
+@app.post("/task3/action", response_model=ActionResponse, tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
-
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    return handler(request)
 
 
 """
