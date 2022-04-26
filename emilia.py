@@ -90,18 +90,14 @@ def handle_call_action(request: ActionRequest):
 def handle_reminder_action():
     return "🔔 Alright, I will remind you!"
 
-
 def handle_timer_action():
     return "⏰ Alright, the timer is set!"
-
 
 def handle_unknown_action():
     return "👀 Sorry , but I can't help with that!"
 
-
 def handle_unknown_user_action(username: str):
     return f"Hi {username}, I don't know you yet. But I would love to meet you!"
-
 
 def handler(request: ActionRequest):
 
@@ -119,7 +115,7 @@ def handler(request: ActionRequest):
     elif re.search(r'\btimer\b', request.action, re.IGNORECASE):  # Check if its an timer action
         message = handle_timer_action()
 
-    else:  # If none of the above action exist, call unknown actionxs.
+    else:  # If none of the above action exist, call unknown action.
         message = handle_unknown_action()
 
     return {'message': message}
@@ -138,10 +134,10 @@ Task 4 - Security
 
 # create secret key with: openssl rand -hex 32
 SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
-ALOGRITHM = "HS256"
+ALGORITHM = "HS256"
 
-encode_jwt = partial(jwt.encode, key=SECRET_KEY, algorithm=ALOGRITHM)
-decode_jwt = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALOGRITHM])
+encode_jwt = partial(jwt.encode, key=SECRET_KEY, algorithm=ALGORITHM)
+decode_jwt = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALGORITHM])
 
 _crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 verify_password = _crypt_context.verify
@@ -179,12 +175,15 @@ class Token(BaseModel):
 
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
-    ...
+
+    # Check if the user is exist.
+    if not (user := get_user(form_data.username)):
+        raise unauthorize("Incorrect username or password")
+
+    # Verify password
+    if not verify_password(form_data.password, user.hashed_password):
+        raise unauthorize("Incorrect username or password")
+
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
@@ -201,16 +200,27 @@ def get_user(username: str) -> Optional[User]:
     return User(**fake_users_db[username])
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid authentication credentials",
+def unauthorize(detail: str, code: Optional[int] = status.HTTP_401_UNAUTHORIZED):
+    return HTTPException(
+        status_code=code,
+        detail=detail,
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+
+    try:
+        payload = decode_jwt(token)
+
+        # check if the token 🪙 is valid
+        if payload['exp'] < int(datetime.now().timestamp()):
+            raise Exception("Token expires")
+    except:
+        # otherwise raise the credentials_exception
+        raise unauthorize("Invalid authentication credentials")
+
+    return get_user(payload['sub'])
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -219,8 +229,9 @@ async def read_user_secret(
 ):
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
-    ...
+    if username != current_user.username:
+        raise unauthorize("Don't spy on other user!", status.HTTP_403_FORBIDDEN)
+
     if user := get_user(username):
         return user.secret
 
