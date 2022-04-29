@@ -1,4 +1,6 @@
+from webbrowser import get
 from fastapi import FastAPI
+import fastapi
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -12,11 +14,20 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language = 'de') -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
     ...
-    return f"Hello {name}, I am Emilia."
+    if language =="en":
+         return f"Hello {name}, I am Emilia."
+    if language =="de":
+         return f"Hallo {name}, ich bin Emilia."
+    if language == "es":
+        return f"Hola {name}, soy Emilia."
+
+    return f"Hallo {name}, leider spreche ich nicht '{language}'!"
+    
+
 
 
 """
@@ -29,6 +40,22 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
+
+    words = key.split('_')
+
+    tranformed_words = [words[0]]
+
+    for ind,word in enumerate(words):
+        if ind == 0:
+            continue;
+        
+        tranformed_words.append(word[0].capitalize() + word[1:])
+
+    key = "".join(tranformed_words)
+
+    print(key)    
+
+    key = "".join(tranformed_words)
     ...
     return key
 
