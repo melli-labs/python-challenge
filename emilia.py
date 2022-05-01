@@ -1,3 +1,4 @@
+from unittest import result
 from webbrowser import get
 from fastapi import FastAPI
 import fastapi
@@ -228,20 +229,49 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+
+    username = form_data.username
+    password = form_data.password
+
+    try:
+        user = fake_users_db[username]
+        if user:
+            hashed_password = user["hashed_password"];
+
+            result = verify_password(secret=password, hash=hashed_password)
+
+            # if the passwords match
+            if (result):
+                ...
+                payload = {
+                    "sub": form_data.username,
+                    "exp": datetime.utcnow() + timedelta(minutes=30),
+                }
+                return {
+                    "access_token": encode_jwt(payload),
+                    "token_type": "bearer",
+                }
+
+            # if the passwords don't match
+            raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect username or password"
+                )
+        else:
+           raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect username or password"
+                )
+    except (AttributeError , KeyError):
+        raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password"
+            )
 
 
 def get_user(username: str) -> Optional[User]:
     if username not in fake_users_db:
-        return
+        return 
     return User(**fake_users_db[username])
 
 
@@ -256,6 +286,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # Write your code below
     ...
 
+    try:
+        payload = decode_jwt(token=token)
+        username = payload["sub"]
+
+        return User(**fake_users_db[username])
+    except JWTError:
+        raise credentials_exception
+
+
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
@@ -265,8 +304,13 @@ async def read_user_secret(
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
     ...
-    if user := get_user(username):
+    user = get_user(username)
+    if user.username == current_user.username:
         return user.secret
+    raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Don't spy on other user!"
+        )
 
 
 """
