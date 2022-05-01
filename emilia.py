@@ -1,17 +1,16 @@
 from webbrowser import get
 from fastapi import FastAPI
 import fastapi
+import re
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
     description="Help Emilia 👩 to fix our tests and get a job interview 💼🎙️!",
 )
 
-
 """
 Task 1 - Warmup
 """
-
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
 async def task1_greet(name: str, language = 'de') -> str:
@@ -27,8 +26,6 @@ async def task1_greet(name: str, language = 'de') -> str:
 
     return f"Hallo {name}, leider spreche ich nicht '{language}'!"
     
-
-
 
 """
 Task 2 - snake_case to cameCase
@@ -87,28 +84,46 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(username: str,action: str):
     # Write your code below
     ...
-    return "🤙 Why don't you call them yourself!"
+    name = None
+
+    call_first_pattern = re.search(r'(?:call|Call) my friend ([A-Z][a-z]+)',action)
+    if call_first_pattern:
+        name = call_first_pattern.group(1)
+
+    call_second_pattern = re.search(r'Can you call ([A-Z][a-z]+)',action)
+    if call_second_pattern:
+        name = call_second_pattern.group(1)
+    
+    call_third_pattern = re.search(r'I haven\'t spoken to ([A-Z][a-z]+) in a long time. Can you call her\?',action)
+    if call_third_pattern:
+        name = call_third_pattern.group(1)
+
+    friends_list = friends[username]
+
+    if name in friends_list:
+        return {"message":  f'🤙 Calling {name} ...'}
+    return {"message": f"{username}, I can't find this person in your contacts."}
 
 
-def handle_reminder_action(action: str):
+def handle_reminder_action(username: str, action: str):
     # Write your code below
     ...
-    return "🔔 I can't even remember my own stuff!"
+    return {"message": "🔔 Alright, I will remind you!"}
 
 
-def handle_timer_action(action: str):
+def handle_timer_action(username: str,action: str):
     # Write your code below
     ...
-    return "⏰ I don't know how to read the clock!"
+    return {"message": "⏰ Alright, the timer is set!"}
 
 
 def handle_unknown_action(action: str):
     # Write your code below
     ...
-    return "🤬 #$!@"
+    return {"message": "👀 Sorry , but I can't help with that!"}
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -118,18 +133,38 @@ def task3_action(request: ActionRequest):
     #      of the action handlers
     # Write your code below
     ...
-    from random import choice
+    print(request)
+    username = request.username
+    action = request.action
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    # check if the username exists
+    if username not in friends.keys():
+        return {"message": f"Hi {username}, I don't know you yet. But I would love to meet you!"}
+
+    if re.search(r'Set a timer for [a-z]+ minutes',action):
+        return handle_timer_action(username, action)
+
+    if re.search(r'^Remind', action):
+        return handle_reminder_action(username, action)
+
+    if re.search(r'(?:call|Call)',action):
+        return handle_call_action(username, action)
+
+    return handle_unknown_action(action)
+
+
+    # from random import choice
+
+    # # There must be a better way!
+    # handler = choice(
+    #     [
+    #         handle_call_action,
+    #         handle_reminder_action,
+    #         handle_timer_action,
+    #         handle_unknown_action,
+    #     ]
+    # )
+    # return handler(request.action)
 
 
 """
