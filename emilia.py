@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import re
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -10,13 +11,21 @@ app = FastAPI(
 Task 1 - Warmup
 """
 
-
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str = None) -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    message = f"Hallo {name}, ich bin Emilia."
+    if(language):
+        lang_dict = {
+            "en": f"Hello {name}, I am Emilia.",
+            "es": f"Hola {name}, soy Emilia.",
+            "de": f"Hallo {name}, ich bin Emilia."
+        }
+        try:
+            message = lang_dict[language]
+        except KeyError:
+            message = f"Hallo {name}, leider spreche ich nicht '{language}'!"
+    return message
 
 
 """
@@ -27,11 +36,14 @@ from typing import Any
 
 
 def camelize(key: str):
-    """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
-
+    """Takes a string in snake_case format returns camelCase formatted version."""
+    return_str = ""
+    for idx, string in enumerate(key.split("_")):
+        if(idx == 0):
+            return_str += string
+        else:
+            return_str += string.capitalize()
+    return return_str
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
@@ -50,6 +62,48 @@ friends = {
     "Stefan": ["Felix", "Ben", "Philip"],
 }
 
+def check_if_user_exist(username:str):
+    """
+    Checks if provided username is in friends dict as key.
+    Param:
+    username
+    """
+    try:
+        friends[username]
+        return True
+    except KeyError:
+        return False
+
+def find_keyword(action:str):
+    """
+    Skims the action for valid keywords
+    Returns appropiate keyword
+    Returns "none" if no valid keyword was found
+    """
+    ret_value = "none"
+    valid_keywords = ["Call","call","Remind", "remind","Timer", "timer"]
+    filter_n_split_str = re.sub(r"[^a-zA-Z0-9 ]","",action).split(" ")
+    for sub_str in filter_n_split_str:
+        if(sub_str in valid_keywords):
+            ret_value = sub_str.lower()
+            return ret_value
+    return ret_value
+
+def find_contact_name(valid_names:list[str],action:str):
+    """
+    Find the contact_name in an action
+    Param:
+    valid_names -> list of valid contact names
+    action
+    """
+    ret_value = None
+    filter_n_split_str = re.sub(r"[^a-zA-Z0-9 ]","",action).split(" ")
+    for sub_str in filter_n_split_str:
+        if(sub_str in valid_names):
+            ret_value = sub_str
+            return ret_value
+    return ret_value
+
 
 class ActionRequest(BaseModel):
     username: str
@@ -60,50 +114,44 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(username:str ,action: str):
+    contact_name = find_contact_name(friends[username], action)
+    if(contact_name):
+        return ActionResponse(message=f"🤙 Calling {contact_name} ...")
+    return ActionResponse(message=f"{username}, I can't find this person in your contacts.")
+
+def handle_reminder_action():
+    return ActionResponse(message="🔔 Alright, I will remind you!")
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_timer_action():
+    return ActionResponse(message="⏰ Alright, the timer is set!")
 
+def handle_unknown_action():
+    return ActionResponse(message="👀 Sorry , but I can't help with that!")
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
-
-
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_user(username: str):
+    return ActionResponse(message=f"Hi {username}, I don't know you yet. But I would love to meet you!")
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
+    username = request.username
+    action = request.action
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    if(check_if_user_exist(username) is False):
+        return handle_unknown_user(username)
 
+    valid_handlers = {
+        "call": handle_call_action(username=username,action=action),
+        "remind": handle_reminder_action(),
+        "timer": handle_timer_action(),
+        "none": handle_unknown_action(),
+    }
+
+    action_handler_keyword = find_keyword(action=action)
+    return valid_handlers[action_handler_keyword]
 
 """
 Task 4 - Security
