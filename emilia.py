@@ -1,4 +1,3 @@
-from ntpath import join
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -41,6 +40,15 @@ def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
     ...
+    # split the key into it's containing words
+    words = key.split("_")
+
+    # transform the elements in the words list into elements where the first letter is captilized (Except for the first word)
+    captilized_words = map(lambda args: args[1] if args[0] == 0 else args[1].capitalize()  ,enumerate(words))
+
+    # join the captilized words into one string
+    key = "".join(captilized_words)
+
     return key
 
 
