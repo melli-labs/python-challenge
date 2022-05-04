@@ -1,3 +1,4 @@
+from ntpath import join
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -12,11 +13,21 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str,language="de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
     ...
-    return f"Hello {name}, I am Emilia."
+
+    if language == "de":
+        return f"Hallo {name}, ich bin Emilia."
+    
+    if language == "es":
+        return f"Hola {name}, soy Emilia."
+
+    if language == "en":
+        return f"Hello {name}, I am Emilia."
+    
+    return f"Hallo {name}, leider spreche ich nicht 'ita'!"
 
 
 """
