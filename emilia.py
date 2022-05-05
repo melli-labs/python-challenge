@@ -1,4 +1,6 @@
+from email import message
 from fastapi import FastAPI
+import re
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -79,28 +81,41 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(request: ActionRequest):
     # Write your code below
     ...
-    return "🤙 Why don't you call them yourself!"
+    user_friends = friends[request.username]
+    
+    # filter the user_friends list to check if the person to call is a friend of the user
+    to_call = list(filter(lambda friend: re.search(rf'\b{friend}\b',request.action), user_friends))
+
+    if to_call:
+        return ActionResponse(message=f"🤙 Calling {to_call[0]} ...")
+    
+    return ActionResponse(message=f"{request.username}, I can't find this person in your contacts.")
+    
 
 
 def handle_reminder_action(action: str):
     # Write your code below
     ...
-    return "🔔 I can't even remember my own stuff!"
+    return ActionResponse(message="🔔 Alright, I will remind you!")
 
 
 def handle_timer_action(action: str):
     # Write your code below
     ...
-    return "⏰ I don't know how to read the clock!"
+    return ActionResponse(message="⏰ Alright, the timer is set!")
 
 
 def handle_unknown_action(action: str):
     # Write your code below
     ...
-    return "🤬 #$!@"
+    return ActionResponse(message="👀 Sorry , but I can't help with that!")
+
+
+def handle_unknown_user(name):
+    return ActionResponse(message= f"Hi {name}, I don't know you yet. But I would love to meet you!")
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -110,19 +125,24 @@ def task3_action(request: ActionRequest):
     #      of the action handlers
     # Write your code below
     ...
-    from random import choice
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    # check if the username is in the friends dict
+    if request.username not in friends:
+        return handle_unknown_user(name=request.username)
+    
+    # check if it's a timer task
+    if re.search(r'\btimer\b',request.action):
+        return handle_timer_action(request.action)
 
+    # check if it's a reminder task
+    if re.search(r'\b(?:remind|Remind)', request.action):
+        return handle_reminder_action(request.action)
+
+    # check if it's a call task
+    if re.search(r'\b(?:call|Call)\b', request.action):
+        return handle_call_action(request)
+    
+    return handle_unknown_action(request.action)
 
 """
 Task 4 - Security
