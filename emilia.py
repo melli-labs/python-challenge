@@ -206,14 +206,37 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # tip: check the verify_password above
     # Write your code below
     ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+
+    username = form_data.username
+    password = form_data.password
+
+    try:
+        # filter the fake_users_db dict and return the user dict that matches the username if it exists
+        # user = dict(filter(lambda user: user[0] == username ,list(fake_users_db.items())))[username]
+        user = User(**fake_users_db[username])
+    except KeyError:
+        # if the username doesn't exist in the fake_users_db we raise an HTTP 401 exception 
+        raise HTTPException(
+            status_code= status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password"
+        )
+
+    else:
+        # compaire the incoming password with the one stroed in fake_users_db dict
+        if verify_password(password, user.hashed_password):
+            payload = {
+                "sub": form_data.username,
+                "exp": datetime.utcnow() + timedelta(minutes=30),
+            }
+            return {
+                "access_token": encode_jwt(payload),
+                "token_type": "bearer",
+            }
+        # if the two passwords don't match we raise an HTTP 401 exception
+        raise HTTPException(
+            status_code= status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password"
+        )
 
 
 def get_user(username: str) -> Optional[User]:
@@ -233,6 +256,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # Write your code below
     ...
 
+    try:
+        payload = decode_jwt(token=token)
+
+        # get the user that matches the sub claim in the jwt payload
+        user = fake_users_db[payload['sub']]
+
+        # return an object the resembles the current user
+        return User(**user)
+    except JWTError:
+        raise credentials_exception
+
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
@@ -243,8 +277,13 @@ async def read_user_secret(
     # Write your code below
     ...
     if user := get_user(username):
-        return user.secret
+        if user.username == current_user.username:
+            return user.secret
 
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Don't spy on other user!"
+    )
 
 """
 Task and Help Routes
