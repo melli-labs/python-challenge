@@ -1,3 +1,6 @@
+from doctest import register_optionflag
+from traceback import print_tb
+from urllib import request, response
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -12,15 +15,23 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language:str='de') -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
     ...
-    return f"Hello {name}, I am Emilia."
+    if language == 'en':
+        query = f"Hello {name}, I am Emilia."
+    elif language == 'es':
+        query = f"Hola {name}, soy Emilia."
+    elif language == 'de':
+        query = f"Hallo {name}, ich bin Emilia."
+    else:
+        query = f"Hallo {name}, leider spreche ich nicht '{language}'!"
+    return query
 
 
 """
-Task 2 - snake_case to cameCase
+Task 2 - snake_case to camelCase
 """
 
 from typing import Any
@@ -28,11 +39,16 @@ from typing import Any
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
+    
+    text = key.split('_')
+    t2 = ''
+    for t in text:
+        t2 += str(t).capitalize()
+        ch = t2[0].lower()
+        key = ch + t2[1::]
     return key
 
-
+ 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
     """Takes a JSON object and transfroms all keys from snake_case to camelCase."""
@@ -61,48 +77,77 @@ class ActionResponse(BaseModel):
 
 
 def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
-
+    pals = friends[user]
+    for pal in pals:
+        if pal in action:
+            return {'message': f'🤙 Calling {pal} ...'}
+        else:
+            respond = {
+            "message": f"{user}, I can't find this person in your contacts.",
+        }
+        
+    return respond
+        
 
 def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    
+    return {
+            "message": "🔔 Alright, I will remind you!",
+        }
 
 
 def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    
+    return {
+            "message": "⏰ Alright, the timer is set!",
+        }
 
 
 def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+    
+    return {
+            "message": "👀 Sorry , but I can't help with that!",
+        }
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
+    global user
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
     ...
-    from random import choice
 
     # There must be a better way!
-    handler = choice(
-        [
+    
+    handlers =[
             handle_call_action,
             handle_reminder_action,
             handle_timer_action,
             handle_unknown_action,
         ]
-    )
-    return handler(request.action)
+
+    user_req = request.action.lower()
+    user = request.username
+    if user in friends.keys():
+        if 'call' in user_req:
+            response = handlers[0](request.action)
+        elif 'remind' in user_req:
+            response = handlers[1](request.action)
+        elif 'timer' in user_req:
+            response = handlers[2](request.action)
+        else:
+            response = handlers[3](request.action)
+
+        ### Of course I could handle these answers inside the action handler functions, but I found it easier and more convinient to write my code here.
+
+    else:
+        return {
+            "message": f"Hi {user}, I don't know you yet. But I would love to meet you!",
+        }
+    return response
+    
 
 
 """
@@ -167,19 +212,28 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # tip: check the verify_password above
     # Write your code below
     ...
+
+    users_list = list(fake_users_db.keys())
+
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
     }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
+
+    the_user = str(form_data.username)
+    print(the_user, fake_users_db[the_user]['hashed_password'])
+    if the_user in users_list and form_data.password == fake_users_db[the_user]['hashed_password']:
+        return {
+            "access_token": encode_jwt(payload),
+            "token_type": "bearer",
     }
+
+    return "You are not allowed to obtain a token."
 
 
 def get_user(username: str) -> Optional[User]:
     if username not in fake_users_db:
-        return
+        return "You are not allowed to obtain a token."
     return User(**fake_users_db[username])
 
 
