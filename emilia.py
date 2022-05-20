@@ -98,8 +98,17 @@ def handle_reminder_action(action: str):
 
 def handle_timer_action(action: str):
     
-    return {
+    key_words = ['minutes', 'hours', 'minute', 'hour']
+
+    for time in key_words:
+        if time in action:
+            return {
             "message": "⏰ Alright, the timer is set!",
+        }
+
+    
+    return {
+            "message": "👀 Sorry , but I can't help with that!",
         }
 
 
