@@ -1,3 +1,16 @@
+from tomlkit.api import parse
+from pathlib import Path
+from passlib.context import CryptContext
+from jose import JWTError, jwt
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import Depends, HTTPException, status
+from typing import Optional
+from functools import partial
+from datetime import datetime, timedelta
+from pydantic import BaseModel
+from typing import Any
+import gettext
+
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -5,6 +18,14 @@ app = FastAPI(
     description="Help Emilia 👩 to fix our tests and get a job interview 💼🎙️!",
 )
 
+DEFAULT_LANGUAGE = "de"
+SUPPORTED_GREETINGS = {
+    "de": "Hallo {name}, ich bin Emilia.",
+    "en": "Hello {name}, I am Emilia.",
+    "es": "Hola {name}, soy Emilia."
+}
+
+UNSUPPORTED_LANGUAGE_MSG = "Hallo {name}, leider spreche ich nicht '{language}'!"
 
 """
 Task 1 - Warmup
@@ -12,38 +33,40 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str = DEFAULT_LANGUAGE) -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+    # import pydevd_pycharm
+    # pydevd_pycharm.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True)
+    if language in SUPPORTED_GREETINGS:
+        message = SUPPORTED_GREETINGS[language].format(name=name)
+    else:
+        message = UNSUPPORTED_LANGUAGE_MSG.format(name=name, language=language)
+
+    return message
 
 
 """
 Task 2 - snake_case to cameCase
 """
 
-from typing import Any
-
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
+    words = key.split('_')
+    # Using title method capitalize the first letter of each word
+    # Join them using join method
+    return words[0] + ''.join(x.title() for x in words[1:])
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
-    """Takes a JSON object and transfroms all keys from snake_case to camelCase."""
+    """Takes a JSON object and transforms all keys from snake_case to camelCase."""
     return {camelize(key): value for key, value in data.items()}
 
 
 """
 Task 3 - Handle User Actions
 """
-
-from pydantic import BaseModel
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -60,63 +83,73 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(username: str, action: str):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    user_friends_name = None
+    friend_list = friends[username]
+    for friend in friend_list:
+        if friend in action:
+            user_friends_name = friend
+            break
+
+    if user_friends_name:
+        response = {"message": "🤙 Calling {user_friends_name} ...".format(user_friends_name=user_friends_name)}
+    else:
+        response = {"message": "{username}, I can't find this person in your contacts.".format(username=username)}
+
+    return response
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action(username: str, action: str):
+    response = {"message": "🔔 Alright, I will remind you!"}
+    return response
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action(username: str, action: str):
+    response = {"message": "⏰ Alright, the timer is set!"}
+    return response
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action(username: str, action: str):
+    response = {"message": "👀 Sorry , but I can't help with that!"}
+    return response
 
 
-@app.post("/task3/action", tags=["Task 3"], summary="🤌")
+@app.post("/task3/action", tags=["Task 3"], summary="🤌", response_model=ActionResponse)
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
 
     # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    action_map = {
+        'call': handle_call_action,
+        'remind': handle_reminder_action,
+        'timer': handle_timer_action
+    }
+
+    handler = None
+    user_list = list(friends.keys())
+    if request.username in user_list:
+        for act in action_map:
+            if act in request.action.lower():
+                handler = action_map[act]
+
+        if handler is None:
+            handler = handle_unknown_action
+
+    else:
+        return {
+            "message": "Hi {username}, I don't know you yet. But I would love to meet you!".format(
+                username=request.username),
+        }
+
+    return handler(request.username, request.action)
 
 
 """
 Task 4 - Security
 """
-
-from datetime import datetime, timedelta
-from functools import partial
-from typing import Optional
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 # create secret key with: openssl rand -hex 32
 SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
@@ -197,7 +230,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
-    username: str, current_user: User = Depends(get_current_user)
+        username: str, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
@@ -211,11 +244,6 @@ async def read_user_secret(
 Task and Help Routes
 """
 
-from functools import partial
-from pathlib import Path
-
-from tomlkit.api import parse
-
 messages = parse((Path(__file__).parent / "messages.toml").read_text("utf-8"))
 
 
@@ -224,11 +252,14 @@ async def hello():
     return messages["hello"]
 
 
-identity = lambda x: x
+def identity(x): return x
+
+
 for i in 1, 2, 3, 4:
     task = messages[f"task{i}"]
     info = partial(identity, task["info"])
     help_ = partial(identity, task["help"])
     tags = [f"Task {i}"]
     app.get(f"/task{i}", summary="📝", description=info(), tags=tags)(info)
-    app.get(f"/task{i}/help", summary="🙋", description=help_(), tags=tags)(help_)
+    app.get(f"/task{i}/help", summary="🙋",
+            description=help_(), tags=tags)(help_)
