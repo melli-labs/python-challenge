@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from jose.exceptions import JWTClaimsError
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -48,8 +47,7 @@ async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
 Task 3 - Handle User Actions
 """
 
-from pydantic import BaseModel, parse_obj_as
-from typing import List
+from pydantic import BaseModel
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
