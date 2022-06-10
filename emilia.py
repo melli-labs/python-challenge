@@ -47,7 +47,8 @@ async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
 Task 3 - Handle User Actions
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, parse_obj_as
+from typing import List
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -64,28 +65,43 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(request: ActionRequest):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    current_user = request.username
+    friends_list = friends.get(current_user)
+    for friend in friends_list:
+        if friend in request.action:
+            return f"🤙 Calling {friend} ..."
+    return f"{current_user}, I can't find this person in your contacts."
 
 
-def handle_reminder_action(action: str):
+def handle_reminder_action(request: ActionRequest):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    return "🔔 Alright, I will remind you!"
 
 
-def handle_timer_action(action: str):
+def handle_timer_action(request: ActionRequest):
     # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    return "⏰ Alright, the timer is set!"
 
 
-def handle_unknown_action(action: str):
+def handle_unknown_action(request: ActionRequest):
     # Write your code below
-    ...
-    return "🤬 #$!@"
+    return "👀 Sorry , but I can't help with that!"
+
+
+def select_matching_handler(action: str):
+    """Chooses the matching action handler based on the incoming action message"""
+    lowercase_action = action.lower()
+    action_handlers = {
+        "call": handle_call_action,
+        "remind": handle_reminder_action,
+        "timer": handle_timer_action,
+    }
+    for action_keyword, handler in action_handlers.items():
+        if action_keyword in lowercase_action:
+            return handler
+    return handle_unknown_action
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -94,19 +110,10 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
-
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    if not friends.get(request.username):
+        return ActionResponse(message=f"Hi {request.username}, I don't know you yet. But I would love to meet you!")
+    handler = select_matching_handler(request.action)
+    return ActionResponse(message=handler(request))
 
 
 """
