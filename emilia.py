@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from jose.exceptions import JWTClaimsError
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -177,9 +178,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
+    if not (user := get_user(form_data.username)) or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password"
+        )
     payload = {
-        "sub": form_data.username,
+        "sub": user.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
     }
     return {
@@ -203,7 +208,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    try:
+        if payload := decode_jwt(token):
+            return get_user(payload.get('sub'))
+    except JWTError:
+        pass
+    raise credentials_exception
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -213,9 +223,12 @@ async def read_user_secret(
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
-    if user := get_user(username):
+    if (user := get_user(username)) and user == current_user:
         return user.secret
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Don't spy on other user!"
+    )
 
 
 """
