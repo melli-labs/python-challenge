@@ -10,13 +10,26 @@ app = FastAPI(
 Task 1 - Warmup
 """
 
+DEFAULT_LANGUAGE = "de"
+SUPPORTED_LANGUAGES = {"de","en","es"}
+
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str = DEFAULT_LANGUAGE) -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+
+    default_greeting = f"Hallo {name}, leider spreche ich nicht '{language}'!"
+    greetings = {"de": f"Hallo {name}, ich bin Emilia.", 
+                 "en": f"Hello {name}, I am Emilia.",
+                 "es": f"Hola {name}, soy Emilia."}
+                 
+    if language in SUPPORTED_LANGUAGES:
+        return_greeting = greetings[language]
+    else:
+        return_greeting = default_greeting
+    return return_greeting
+
 
 
 """
@@ -29,8 +42,11 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    string_components = str.split(str, "_")
+    for component in string_components[1:]:
+        component = component.title()
+    
+    return ''.join(string_components)
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
