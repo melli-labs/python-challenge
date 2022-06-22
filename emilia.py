@@ -1,3 +1,5 @@
+from email import message
+from tomlkit import key
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -77,28 +79,61 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(request: ActionRequest):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    contact = get_friend_by_request(request)
+    if contact:
+        return "🤙 Calling " + contact + " ..."
+    else:
+        return request.username + ", I can't find this person in your contacts."
 
 
 def handle_reminder_action(action: str):
     # Write your code below
     ...
-    return "🔔 I can't even remember my own stuff!"
+    return "🔔 Alright, I will remind you!"
 
 
 def handle_timer_action(action: str):
     # Write your code below
     ...
-    return "⏰ I don't know how to read the clock!"
+    return "⏰ Alright, the timer is set!"
 
 
 def handle_unknown_action(action: str):
     # Write your code below
     ...
-    return "🤬 #$!@"
+    return "👀 Sorry , but I can't help with that!"
+
+def verify_user(username: str):
+    """Verifies that the user is known"""
+    if username in friends:
+        return True
+    return False
+
+def get_friend_by_request(request: ActionRequest):
+    """Tries to find a contact in the request, returns the contact on success and False on failure"""
+    contact_list = friends[request.username]
+    for contact in contact_list:
+        if contact in request.action:
+            return contact
+    return False
+
+
+def get_handler_by_action(action: str):
+    """Looks for certain keywords in the action and chooses the corresponding handler"""
+    available_handlers = {
+        "call": handle_call_action,
+        "remind": handle_reminder_action,
+        "timer": handle_timer_action
+    }
+    lowercase_action = action.lower()
+
+    for keyword in available_handlers.keys():
+        if keyword in lowercase_action:
+            return available_handlers[keyword]
+
+    return handle_unknown_action
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -107,19 +142,13 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    if verify_user(request.username):
+        handler = get_handler_by_action(request.action)
+    else:
+        return ActionResponse(message="Hi "+request.username+", I don't know you yet. But I would love to meet you!")
+    
+    return ActionResponse(message=handler(request))
 
 
 """
