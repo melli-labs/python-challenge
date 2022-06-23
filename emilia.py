@@ -1,3 +1,4 @@
+from ast import Try
 from email import message
 from tomlkit import key
 from fastapi import FastAPI
@@ -90,19 +91,16 @@ def handle_call_action(request: ActionRequest):
 
 def handle_reminder_action(action: str):
     # Write your code below
-    ...
     return "🔔 Alright, I will remind you!"
 
 
 def handle_timer_action(action: str):
     # Write your code below
-    ...
     return "⏰ Alright, the timer is set!"
 
 
 def handle_unknown_action(action: str):
     # Write your code below
-    ...
     return "👀 Sorry , but I can't help with that!"
 
 def verify_user(username: str):
@@ -212,9 +210,22 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
+    unauthorized_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect username or password"
+    )
+
+    fake_user = get_user(form_data.username)
+    if not fake_user:
+        raise unauthorized_exception
+
+    fake_password = verify_password(form_data.password, fake_user.hashed_password)
+    if not fake_password:
+        raise unauthorized_exception
+
+    
     payload = {
-        "sub": form_data.username,
+        "sub": fake_user.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
     }
     return {
@@ -238,7 +249,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    try:
+        payload = decode_jwt(token)
+        username = payload.get("sub")
+
+        if username is None:
+            raise credentials_exception
+
+    except JWTError:
+            raise credentials_exception
+
+    return get_user(username)
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -248,9 +269,14 @@ async def read_user_secret(
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
-    if user := get_user(username):
+
+    if (user := get_user(username)) and user == current_user:
         return user.secret
+        
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Don't spy on other user!"
+    )
 
 
 """
