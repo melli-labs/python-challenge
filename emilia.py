@@ -111,15 +111,18 @@ Task 4 - Security
 
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Optional
+from typing import Optional, Union
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ALGORITHM = "HS256"
+
 
 # create secret key with: openssl rand -hex 32
-SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
+SECRET_KEY = "26baedd8b84c2c77c9395fd94a277afecb86dc20f0744d48d3b58175f9bacc6c"
 ALOGRITHM = "HS256"
 
 encode_jwt = partial(jwt.encode, key=SECRET_KEY, algorithm=ALOGRITHM)
@@ -159,22 +162,49 @@ class Token(BaseModel):
     token_type: str
 
 
+class TokenData(BaseModel):
+    username: Union[str, None] = None
+
+
+
+def authenticate_user(fake_db, username: str, password: str):
+    user = get_user(username)
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
+    return user
+
+
+def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+
+
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+
+    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 def get_user(username: str) -> Optional[User]:
@@ -183,28 +213,37 @@ def get_user(username: str) -> Optional[User]:
     return User(**fake_users_db[username])
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid authentication credentials",
+        detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    user = get_user(username=token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
     username: str, current_user: User = Depends(get_current_user)
 ):
-    """Read a user's secret."""
-    # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
-    ...
-    if user := get_user(username):
+
+    user = get_user(username)
+    if user == current_user:
         return user.secret
+    else:
+        raise HTTPException(status_code=403, detail="Don't spy on other user!")
+
 
 
 """
