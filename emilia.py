@@ -65,49 +65,44 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(action: str, username: str):
+
+    for i in friends[username]:
+        if i in action:
+            return ({'message':f'🤙 Calling {i} ...'})
+    return ({'message':f"{username}, I can't find this person in your contacts."})
 
 
 def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    return ({'message':"🔔 Alright, I will remind you!"})
 
 
 def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+    return ({'message':"⏰ Alright, the timer is set!"})
 
 
 def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+    return ({'message':"👀 Sorry , but I can't help with that!"})
 
 
-@app.post("/task3/action", tags=["Task 3"], summary="🤌")
+@app.post("/task3/action", tags=["Task 3"], summary="🤌", response_model= ActionResponse)
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    if request.username not in list(friends.keys()):
+        return {'message':f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
+
+
+    req = request.action.lower()
+    if 'call' in req:
+        return handle_call_action(request.action,request.username)
+    elif 'remind' in req:
+        return handle_reminder_action(request.action)
+    elif 'timer' in req:
+        return handle_timer_action(request.action)
+    else:
+        return handle_unknown_action(request.action)
+
 
 
 """
