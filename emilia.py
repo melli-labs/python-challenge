@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from typing import Optional
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -12,13 +13,15 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
-    """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
-
-
+async def task1_greet(name:str ,language: Optional[str] = None) -> str:
+    if not language:
+        return f"Hallo {name}, ich bin Emilia."
+    elif language == 'en':
+        return f"Hello {name}, I am Emilia."
+    elif language=='es':
+        return f"Hola {name}, soy Emilia."
+    else:
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
 """
 Task 2 - snake_case to cameCase
 """
