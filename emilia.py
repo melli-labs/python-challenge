@@ -1,4 +1,8 @@
 from fastapi import FastAPI
+from typing import Optional
+
+import pydantic
+import json
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -12,11 +16,22 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: Optional[str] = None) -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
     ...
-    return f"Hello {name}, I am Emilia."
+    returnmsg: str = ""
+    if(language == 'en'):
+        returnmsg = f"Hello {name}, I am Emilia."
+    elif (language == 'de'):
+        returnmsg = f"Hallo {name}, ich bin Emilia."
+    elif (language == 'es'):
+        returnmsg = f"Hola {name}, soy Emilia."
+    elif (language == None):
+        returnmsg = f"Hallo {name}, ich bin Emilia."
+    else:
+        returnmsg = f"Hallo {name}, leider spreche ich nicht '{language}'!"
+    return returnmsg
 
 
 """
@@ -30,7 +45,9 @@ def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
     ...
-    return key
+    temp = key.split('_')
+    res = temp[0] + ''.join(ele.title() for ele in temp[1:])
+    return str(res)
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -50,7 +67,6 @@ friends = {
     "Stefan": ["Felix", "Ben", "Philip"],
 }
 
-
 class ActionRequest(BaseModel):
     username: str
     action: str
@@ -60,28 +76,59 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(action: str, username : str):
     # Write your code below
     ...
-    return "🤙 Why don't you call them yourself!"
+    replyResp : str
+    cname : str = ""
+    if(username=="Matthias"):
+        for x in friends["Matthias"]:
+            if x in action:
+                cname = x
+    elif(username=="Stefan"):
+        for x in friends["Stefan"]:
+            if x in action:
+                cname = x
+    if(cname == ""):
+            replyResp = f"{username}, I can't find this person in your contacts."
+    else:
+            replyResp = f"🤙 Calling {cname} ..."
+                
+    value = {
+        "message" : replyResp
+    }
+    return value
 
 
-def handle_reminder_action(action: str):
+def handle_reminder_action(action: str, username : str):
     # Write your code below
     ...
-    return "🔔 I can't even remember my own stuff!"
+    value = {
+     "message": "🔔 Alright, I will remind you!" 
+    }
+    return value
 
 
-def handle_timer_action(action: str):
+def handle_timer_action(action: str, username : str):
     # Write your code below
     ...
-    return "⏰ I don't know how to read the clock!"
+    value = {
+     "message": "⏰ Alright, the timer is set!"
+    }
+    return value
 
-
-def handle_unknown_action(action: str):
+def handle_unknown_action(action : str, username : str):
     # Write your code below
     ...
-    return "🤬 #$!@"
+    unknownResp : str
+    if(username in friends):
+        unknownResp = "👀 Sorry , but I can't help with that!"
+    else:
+        unknownResp = f"Hi {username}, I don't know you yet. But I would love to meet you!"
+    value = {
+        "message": unknownResp
+    }
+    return value
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -91,19 +138,18 @@ def task3_action(request: ActionRequest):
     #      of the action handlers
     # Write your code below
     ...
-    from random import choice
-
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
-
+    if(request.username in friends and "Remind" in request.action):
+        handler = handle_reminder_action
+    elif(request.username in friends and ("call" in request.action or "Call" in request.action)) :
+         handler = handle_call_action
+    elif(request.username in friends and "timer" in request.action):
+         handler = handle_timer_action
+    elif(request.username in friends):
+         handler = handle_unknown_action
+    elif(request.username not in friends):
+        handler = handle_unknown_action
+        
+    return handler(request.action,request.username)
 
 """
 Task 4 - Security
