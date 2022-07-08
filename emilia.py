@@ -15,7 +15,7 @@ Task 1 - Warmup
 async def task1_greet(name: str) -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
+    #def
     return f"Hello {name}, I am Emilia."
 
 
