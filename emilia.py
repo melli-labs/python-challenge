@@ -44,6 +44,7 @@ def camelize(key: str):
 
     return result
 
+#ref: https://www.geeksforgeeks.org/python-convert-snake-case-string-to-camel-case/
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
@@ -74,9 +75,9 @@ class ActionResponse(BaseModel):
 
 def handle_call_action(action: str, username: str):
     names_of_friends = list(username.split(" "))
-    for friend in names_of_friends:
-        if friend in action:
-            return (f"calling {friend}")
+    for friends in names_of_friends:
+        if friends in action:
+            return (f"calling {friends}")
     return (f"Following Users: {username}, does not exist in your provided action list")
 
 def handle_reminder_action(action: str, username: str = None:
