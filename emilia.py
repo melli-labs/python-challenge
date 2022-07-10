@@ -12,12 +12,17 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language) -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    #def
-    return f"Hello {name}, I am Emilia."
+    if language == 'English':
+        return f"Hello {name}, I am Emilia."
+    elif language == 'German':
+        return f"Hallo {name}, Ich bin Emilia"
+    elif language == 'Spanish':
+        return f"Hola {name}, soy Emilia"
 
+#ref: https://stackoverflow.com/questions/45861540/python-functional-abstraction-on-greetings
 
 """
 Task 2 - snake_case to cameCase
@@ -29,8 +34,15 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    temp = key.split('_')
+
+    result = ''
+    result = temp[0]
+    for i in range(len(temp) - 1):
+        result = result + temp[i + 1][0].capitalize()
+        result = result + temp[i + 1][1:]
+
+    return result
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -60,13 +72,14 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(action: str, username: str):
+    names_of_friends = list(username.split(" "))
+    for friend in names_of_friends:
+        if friend in action:
+            return (f"calling {friend}")
+    return (f"Following Users: {username}, does not exist in your provided action list")
 
-
-def handle_reminder_action(action: str):
+def handle_reminder_action(action: str, username: str):
     # Write your code below
     ...
     return "🔔 I can't even remember my own stuff!"
