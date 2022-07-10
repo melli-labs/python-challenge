@@ -182,7 +182,10 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
+    user_hashed_password = fake_users_db.get(form_data.username).get('hashed_password')
+    if != user_hashed_password:
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
@@ -209,6 +212,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # otherwise raise the credentials_exception above
     # Write your code below
     ...
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALOGRITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    user = get_user(username)
+    if user is None:
+        raise credentials_exception
+    return user
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -220,6 +234,11 @@ async def read_user_secret(
     # Write your code below
     ...
     if user := get_user(username):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid access for user",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
         return user.secret
 
 
