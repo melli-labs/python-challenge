@@ -79,25 +79,19 @@ def handle_call_action(action: str, username: str):
             return (f"calling {friend}")
     return (f"Following Users: {username}, does not exist in your provided action list")
 
-def handle_reminder_action(action: str, username: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action(action: str, username: str = None:
+    return "ok, I got notified I will remind you"
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action(action: str, username: str = None):
+    return "ok, I have set timer."
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action(action: str, username: str):
+    return "I am so Sorry, I am unable to help you"
 
 
-@app.post("/task3/action", tags=["Task 3"], summary="🤌")
+@app.post("/task3/action", tags=["Task 3"], summary="🤌", response_model=ActionResponse)
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
@@ -107,15 +101,24 @@ def task3_action(request: ActionRequest):
     from random import choice
 
     # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    handler = {
+        "reminder": handle_reminder_action,
+        "calling": handle_call_action,
+        "time_counter": handle_timer_action,
+    }
+
+    produced_res = {
+        "response": f"Hello {request.username}, It's my pleasure to meet you."
+    }
+
+    if request.username in friends:
+        produced_res["response"] = handle_unknown_action(request.action)
+        for var in handler.keys():
+            if var in request.action():
+                action_handling = handler[var]
+                produced_res["message"] = action_handling(request.action, request.username)
+
+    return produced_res
 
 
 """
