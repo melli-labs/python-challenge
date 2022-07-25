@@ -20,10 +20,20 @@ help = """
 
 [task3]
 info = """
-👩: Our goal is to increase the quality of life of elderly people by encouraging them to have more contact with other people through a rich and varied daily schedule ✅. Therefore we must understand the intentions of our users. For example, a user might want to call a family member or wants to set a reminder to have some tea with an old friend. We have different handlers to respond to the various user actions. Unfortunately, our code is broken 🤕 as it uses a random handler for every incoming action. On top of that our responses are very rude 🖕 at the moment. Therefore, the first part of your task is to implement an intent recognition mechanism, which forwards the incoming actions to the right action handler. Afterward, you need to implement these action handlers. Make sure the responses are friendlier than they are now 🤗. As always the exact requirements are set by the tests in `/test_emilia.py`. The number of tests is slightly higher than in the previous tasks, but don't let that discourage you!
+👩: Our goal is to increase the quality of life of elderly people by encouraging them to have more contact with other people 
+through a rich and varied daily schedule ✅. Therefore we must understand the intentions of our users. For example, a user might 
+want to call a family member or wants to set a reminder to have some tea with an old friend. We have different handlers to respond
+ to the various user actions. Unfortunately, our code is broken 🤕 as it uses a random handler for every incoming action. On top
+  of that our responses are very rude 🖕 at the moment. Therefore, the first part of your task is to implement an intent 
+  recognition mechanism, which forwards the incoming actions to the right action handler. Afterward, you need to implement 
+  these action handlers. Make sure the responses are friendlier than they are now 🤗. As always the exact requirements are set by 
+  the tests in `/test_emilia.py`. The number of tests is slightly higher than in the previous tasks, but don't let that discourage 
+  you!
 """
 help = """
-👩: This task is somewhat of a green field. How exactly to solve it is up to you. You could use simple string comparisons or a regex pattern. Maybe you want to go even further and implement some grammar rules 📜. If you like to go completely crazy, you might use an NLP model 🤖. I have heard they have some good ones at https://huggingface.co 🤗. Surprise us ✨!
+👩: This task is somewhat of a green field. How exactly to solve it is up to you. You could use simple string comparisons or a 
+regex pattern. Maybe you want to go even further and implement some grammar rules 📜. If you like to go completely crazy, 
+you might use an NLP model 🤖. I have heard they have some good ones at https://huggingface.co 🤗. Surprise us ✨!
 """
 
 [task4]

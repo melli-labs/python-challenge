@@ -1,3 +1,4 @@
+from pickle import NONE
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -12,12 +13,24 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language:str=None) -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
 
+    if language:
+        if language=="de":
+            return f"Hallo {name}, ich bin Emilia."
+ 
+        if language=="en":
+            return f"Hello {name}, I am Emilia."
+
+        elif language=="es":
+            return f"Hola {name}, soy Emilia."
+
+        else:
+            return f"Hallo {name}, leider spreche ich nicht '{language}'!"
+
+    return f"Hallo {name}, ich bin Emilia."
 
 """
 Task 2 - snake_case to cameCase
@@ -25,12 +38,13 @@ Task 2 - snake_case to cameCase
 
 from typing import Any
 
-
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    keyparts = key.split('_')
+    return keyparts[0] + ''.join(x.title() for x in keyparts[1:])
+
+
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -44,6 +58,19 @@ Task 3 - Handle User Actions
 """
 
 from pydantic import BaseModel
+import requests
+import json
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+
+
+#NLP Model Authorization and connection
+API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
+API_TOKEN = "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"
+headers = {"Authorization": f"Bearer {API_TOKEN}"}
+
+
+
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -60,28 +87,49 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(name: str):
+    msg = "🤙 Calling "+name+" ..."
+    ans= {
+        "message":msg,
+    }
+    return ans
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action():
+    msg = "🔔 Alright, I will remind you!"
+    ans= {
+        "message":msg,
+    }
+    return ans
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action():
+    msg = "⏰ Alright, the timer is set!"
+    ans= {
+        "message":msg,
+    }
+    return ans
+
+def handle_unknown_action():
+    msg = "👀 Sorry , but I can't help with that!"
+    ans= {
+        "message":msg,
+    }
+    return ans
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+#Interpreting the action via NLP Model and Return the action index number if the given command is at least 25% identical
+def action_interpreter(payload):
+    data = json.dumps(payload)
+    response = requests.request("POST", API_URL, headers=headers, data=data)
+    action_value = json.loads(response.content.decode("utf-8"))
+
+    if max(action_value)>=.25:
+        return action_value.index(max(action_value))
+   
+    else:
+        return None
+    
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -89,21 +137,63 @@ def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
 
+#Payload to the NLP model with the requested input for interpretation
+    inpdata =    {
+        "inputs": {
+            "source_sentence": request.action,
+            "sentences": [
+                            "Call my friend or I want to talk to",
+                            "Remember me for something or Remind me about something",
+                            "Set the timer or alarm"
+                            ],
+        }
+    }
+
+    action_index = action_interpreter(inpdata)  # Takes the action index number for decisioning
+    
+
+    if request.username in friends.keys(): # Checking the user is exists, if exists then execute the command
+        if action_index == 0:
+            calling_name = None  # For selecting the calling contact
+
+            for i in range(0, len(friends[request.username])):    # Filters which contact to call
+                if friends[request.username][i] in request.action:
+                    calling_name = friends[request.username][i]
+                    return handle_call_action(calling_name)
+                    
+
+            if calling_name == None:
+                msg= request.username+", I can't find this person in your contacts."
+                ans= {
+                    "message":msg,
+                        }
+                return ans
+    
+
+        elif action_index == 1:
+
+            return handle_reminder_action()
+
+        elif action_index == 2:
+
+            return handle_timer_action()
+
+        else:
+            return handle_unknown_action()
+
+    else:
+
+        msg= "Hi "+ request.username+", I don't know you yet. But I would love to meet you!"
+        ans= {
+            "message":msg,
+                }
+        return ans
+
+
+
+   
 
 """
 Task 4 - Security
