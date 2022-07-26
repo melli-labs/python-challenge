@@ -655,13 +655,7 @@ category = "main"
 optional = false
 python-versions = ">=3.6"
 
-[[package]]
-name = "regex"
-version = "2022.7.9"
-description = "Alternative regular expression module, to replace re."
-category = "main"
-optional = false
-python-versions = ">=3.6"
+
 
 [[package]]
 name = "requests"
