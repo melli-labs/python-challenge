@@ -10,9 +10,11 @@ app = FastAPI(
 Task 1 - Warmup
 """
 
+from typing import Union
+
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str, language: str | None = None) -> str:
+async def task1_greet(name: str, language: Union[str, None]  = None) -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
 
