@@ -655,13 +655,7 @@ category = "main"
 optional = false
 python-versions = ">=3.6"
 
-[[package]]
-name = "regex"
-version = "2022.7.24"
-description = "Alternative regular expression module, to replace re."
-category = "main"
-optional = false
-python-versions = ">=3.6"
+
 
 [[package]]
 name = "requests"
@@ -811,13 +805,6 @@ notebook = ["ipywidgets (>=6)"]
 slack = ["slack-sdk"]
 telegram = ["requests"]
 
-[[package]]
-name = "transformers"
-version = "4.20.1"
-description = "State-of-the-art Machine Learning for JAX, PyTorch and TensorFlow"
-category = "main"
-optional = false
-python-versions = ">=3.7.0"
 
 [package.dependencies]
 filelock = "*"
