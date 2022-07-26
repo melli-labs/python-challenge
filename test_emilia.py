@@ -129,7 +129,8 @@ class TestTask3:
     async def test_timer(self, async_client):
         response = await async_client.post(
             "/task3/action",
-            json={"username": "Matthias", "action": "Set a timer for eight minutes!"},
+            json={"username": "Matthias",
+                  "action": "Set a timer for eight minutes!"},
         )
         assert response.status_code == 200
         assert response.json() == {
@@ -182,7 +183,8 @@ def test_task3_success_message():
 @pytest.mark.bonus
 @pytest.mark.asyncio
 class TestTask4:
-    stefan = {"username": "stefan", "password": "decent-espresso-by-john-buckmann"}
+    stefan = {"username": "stefan",
+              "password": "decent-espresso-by-john-buckmann"}
     felix = {"username": "felix", "password": "elm>javascript"}
 
     @pytest.fixture()
@@ -218,7 +220,8 @@ class TestTask4:
     async def test_read_own_secret(self, async_client, token_stefan):
         response = await async_client.get(
             "/task4/users/stefan/secret",
-            headers={"Authorization": f"Bearer {token_stefan['access_token']}"},
+            headers={
+                "Authorization": f"Bearer {token_stefan['access_token']}"},
         )
         assert response.status_code == 200
         assert response.json() == "I love pressure-profiled espresso ☕!"

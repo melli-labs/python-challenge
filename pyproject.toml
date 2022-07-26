@@ -13,6 +13,7 @@ python-multipart = "^0.0.5"
 python-jose = { extras = ["cryptography"], version = "^3.3.0" }
 passlib = { extras = ["bcrypt"], version = "^1.7.4" }
 tomlkit = "^0.7.2"
+translate = "^3.6.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
@@ -22,6 +23,7 @@ httpx = "^0.23.0"
 pylint = "^2.12.2"
 black = "^21.12b0"
 isort = "^5.10.1"
+
 
 [tool.pytest.ini_options]
 markers = ["bonus: optional task applicants don't have to solve"]
