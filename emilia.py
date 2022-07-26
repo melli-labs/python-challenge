@@ -12,11 +12,25 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str | None = None) -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+
+    # solution 2
+    # dictonary with languages-keys
+    response_languages = {
+        'de':f"Hallo {name}, ich bin Emilia.",
+        'en':f"Hello {name}, I am Emilia.",
+        'es':f"Hola {name}, soy Emilia."
+    }
+
+    # check language
+    if language == None:
+        return f"Hallo {name}, ich bin Emilia."
+    elif language in response_languages:
+        return response_languages[language]
+    else:
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
 
 
 """
@@ -29,8 +43,14 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
+    splitted_snake_case = key.split('_')
+
+    camelCase_key = splitted_snake_case[0].lower() # first string is always lowercase
+
+    # add other word first char uppercase
+    for i in splitted_snake_case[1:]:
+        camelCase_key = camelCase_key + i.capitalize()
+    return camelCase_key
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -44,6 +64,7 @@ Task 3 - Handle User Actions
 """
 
 from pydantic import BaseModel
+import re
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -60,28 +81,41 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(request_dict: dict, friends_list: list):
+    # prove is username registered in friend_list
+    friends_list_as_pattern = r"\b" + '(' + '|'.join(friends_list) + ')'
+    friend_in_list = re.search(friends_list_as_pattern, request_dict.action)
+    
+    if friend_in_list:
+        answer_response = f"🤙 Calling {friend_in_list[0]} ..."
+    else:
+        answer_response = f"{request_dict.username}, I can't find this person in your contacts."
+
+    return {"message":answer_response}
 
 
 def handle_reminder_action(action: str):
     # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+    
+    ### WRITE CODE FOR REMINDER? ###
+        # Angabe aus der Action ziehen
+    return {"message":'🔔 Alright, I will remind you!'}
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action(request_dict: dict):
+    # Algorihtmus für den Timer:
+        # Zeitangabe aus der action ziehen
+            
+        # re-Ansatz: Finden von Zeitangaben als
+            # int + Zeiteinheit (Sekunde, Minute, Stunde, Tage, ...)
+            # float + Zeiteinheit (Sekunde, Minute, Stunde, Tage, ...)
+            # string: Zahl als Wort + Zeiteinheit (Sekunde, Minute, Stunde, Tage, ...)
+            # DateTime
+    return {"message":'⏰ Alright, the timer is set!'}
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action(request_dict: dict):
+    return {"message":"👀 Sorry , but I can't help with that!"}
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -90,19 +124,57 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
+    
+    # Planung
+    # Auswahl welcher Task passieren soll
+        # ich habe die Tasks:
+            # Eine Person anrufen
+                # freunde prüfen
+                # Begriffe: 'call', 'calling'
+                # pattern: 
+            # EInen Erinnerung setzen
+                # Begriffe: 'reminde me'
+            # Zeit ansagen
+                # Begriffe: 'set a timer'
+            # nicht verstehen, was passieren soll
+                # Begriffe: die nicht in der Liste sind
+        # DIe Auswahl darüber das:
+            # Version 1: Ich suche alle Wörter raus und suche dann nach den key-words
+                # spaCy?
+
+                # über re.serach mit pattern für die drei Tasks
+
+            # Version:    
 
     # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    # get data from request
+    username = request.username
+    user_action = request.action
+
+    # check users
+    if username not in friends:
+        not_an_user_message = f"Hi {username}, I don't know you yet. But I would love to meet you!"
+        return {'message':not_an_user_message}
+
+    # pattern for choice
+    call_a_friend_pattern = r"\b(call|calling)"
+    set_reminder_pattern = r"\b(remind me)"
+    set_a_timer_pattern = r"\b(set a timer)"
+
+    # matches
+    call_a_friend_match = re.search(call_a_friend_pattern, user_action.lower())
+    set_reminder_match = re.search(set_reminder_pattern, user_action.lower())
+    set_a_timer_match = re.search(set_a_timer_pattern, user_action.lower())
+
+    if call_a_friend_match:
+        handler = handle_call_action(request, friends[username])
+    elif set_reminder_match:
+        handler = handle_reminder_action(request)
+    elif set_a_timer_match:
+        handler = handle_timer_action(request)
+    else:
+        handler = handle_unknown_action(request)
+    return handler
 
 
 """
