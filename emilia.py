@@ -169,24 +169,21 @@ class Token(BaseModel):
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+    if form_data.username not in fake_users_db:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
+    hashed_password = fake_users_db[form_data.username]["hashed_password"]
+
+    if not verify_password(form_data.password, hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
+    else:
+        access_token_expires = timedelta(minutes=5)
+        access_token = encode_jwt({"sub": form_data.username, "exp": datetime.utcnow() + access_token_expires})
+        return {"access_token": access_token, "token_type": "bearer"}
 
 
 def get_user(username: str) -> Optional[User]:
     if username not in fake_users_db:
-        return
+        return None
     return User(**fake_users_db[username])
 
 
@@ -196,22 +193,33 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
-
+    
+    try:
+        payload = decode_jwt(token)
+        username: str = payload["sub"]
+        token_expires = payload["exp"]
+        token_expires_datetime = datetime.fromtimestamp(token_expires)
+        if token_expires_datetime < datetime.utcnow():
+            raise credentials_exception
+        return payload
+    except JWTError:
+        raise credentials_exception
+    
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
     username: str, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
-    # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
-    ...
-    if user := get_user(username):
+    if username != current_user["sub"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN , detail="Don't spy on other user!")
+    try:
+        user = get_user(username)
         return user.secret
+    except e as Exception:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=e)
+    
+    
 
 
 """
