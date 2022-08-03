@@ -78,22 +78,11 @@ def handle_call_action(request: dict):
     else:
         return {"message": f"{user}, I can't find this person in your contacts."}
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
-
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
-
-
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
-
+def handle_reminder_action(request: dict):
+    return {"message": "🔔 Alright, I will remind you!"}
+        
+def handle_timer_action(request: dict):
+    return {"message": "⏰ Alright, the timer is set!"}
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
@@ -104,23 +93,24 @@ def task3_action(request: ActionRequest):
     request_words = [word.lower() for word in request.action.split(" ")]
     user = request.username
     clean_words = []
-    for word in request_words:
-        letters = filter(str.isalnum, word)
-        clean_word = "".join(letters)
-        clean_words.append(clean_word)
-    request =  {"username": user, "action": clean_words}
 
+    if request.username in friends.keys():
+        for word in request_words:
+            letters = filter(str.isalnum, word)
+            clean_word = "".join(letters)
+            clean_words.append(clean_word)
+        request =  {"username": user, "action": clean_words}
 
-
-    if "call" in request_words:
-        return handle_call_action(request)
-    elif "reminder" in request_words:
-        return handle_reminder_action(request)
-    elif "timer" in request_words:
-        return handle_timer_action(request)
+        if "call" in request_words:
+            return handle_call_action(request)
+        elif "remind" in request_words:
+            return handle_reminder_action(request)
+        elif "timer" in request_words:
+            return handle_timer_action(request)
+        else:
+            return {"message": "👀 Sorry , but I can't help with that!"}
     else:
-        return "👀 Sorry , but I can't help with that!"
-
+        return {"message": f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
 
 """
 Task 4 - Security
