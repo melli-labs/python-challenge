@@ -74,15 +74,15 @@ def handle_call_action(request: dict):
             friend = word.lower()
             
     if friend != None:
-        return {"message": f"🤙 Calling {friend.capitalize()} ..."}
+        return ActionResponse(message= f"🤙 Calling {friend.capitalize()} ...")
     else:
         return {"message": f"{user}, I can't find this person in your contacts."}
 
 def handle_reminder_action(request: dict):
-    return {"message": "🔔 Alright, I will remind you!"}
+    return ActionResponse(message= "🔔 Alright, I will remind you!")
         
 def handle_timer_action(request: dict):
-    return {"message": "⏰ Alright, the timer is set!"}
+    return ActionResponse(message= "⏰ Alright, the timer is set!")
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
@@ -108,9 +108,9 @@ def task3_action(request: ActionRequest):
         elif "timer" in request_words:
             return handle_timer_action(request)
         else:
-            return {"message": "👀 Sorry , but I can't help with that!"}
+            return ActionResponse(message= "👀 Sorry , but I can't help with that!")
     else:
-        return {"message": f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
+        return ActionResponse(message= f"Hi {request.username}, I don't know you yet. But I would love to meet you!")
 
 """
 Task 4 - Security
