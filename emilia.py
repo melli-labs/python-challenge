@@ -65,17 +65,23 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
-
+def handle_call_action(request: dict):
+    user = request["username"]
+    friends_list = [name.lower() for name in friends[user]]
+    friend = None    
+    for word in request["action"]:
+        if word.lower() in friends_list:
+            friend = word.lower()
+            
+    if friend != None:
+        return {"message": f"🤙 Calling {friend.capitalize()} ..."}
+    else:
+        return {"message": f"{user}, I can't find this person in your contacts."}
 
 def handle_reminder_action(action: str):
     # Write your code below
     ...
     return "🔔 I can't even remember my own stuff!"
-
 
 def handle_timer_action(action: str):
     # Write your code below
@@ -95,19 +101,25 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
+    request_words = [word.lower() for word in request.action.split(" ")]
+    user = request.username
+    clean_words = []
+    for word in request_words:
+        letters = filter(str.isalnum, word)
+        clean_word = "".join(letters)
+        clean_words.append(clean_word)
+    request =  {"username": user, "action": clean_words}
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+
+
+    if "call" in request_words:
+        return handle_call_action(request)
+    elif "reminder" in request_words:
+        return handle_reminder_action(request)
+    elif "timer" in request_words:
+        return handle_timer_action(request)
+    else:
+        return "👀 Sorry , but I can't help with that!"
 
 
 """
