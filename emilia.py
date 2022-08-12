@@ -256,7 +256,10 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
                 "access_token": encode_jwt(payload),
                 "token_type": "bearer",
             }
-    raise HTTPException(status_code=401, detail="Incorrect username or password")
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect username or password",
+    )
 
 
 PayloadType = dict[str, Union[datetime, str]]
@@ -289,7 +292,9 @@ def decode_jwt_token(token: str) -> Optional[PayloadType]:
         if decoded_token["exp"] >= time.time():
             return decoded_token
     except ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Signature has expired.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Signature has expired."
+        )
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -301,10 +306,12 @@ async def read_user_secret(
     # Write your code below
     requesting_user = get_user(username)
     if requesting_user and requesting_user.username != current_user.username:
-        raise HTTPException(status_code=403, detail="Don't spy on other user!")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Don't spy on other user!"
+        )
     elif not requesting_user:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Hi {username}, I don't know you yet. But I would love to meet you!",
         )
     return requesting_user.secret
