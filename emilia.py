@@ -1,3 +1,8 @@
+from dis import Instruction
+from typing import Optional
+from wsgiref import validate
+
+import uvicorn
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -12,25 +17,37 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, lang: str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Emilia."
+
+    unknown_language_reply = f"Hallo {name}, leider spreche ich nicht '{lang}'!"
+    available_languages = {
+        "de": f"Hallo {name}, ich bin Emilia.",
+        "en": f"Hello {name}, I am Emilia.",
+        "es": f"Hola {name}, soy Emilia.",
+    }
+    reply = (
+        available_languages[lang]
+        if lang in available_languages
+        else unknown_language_reply
+    )
+    return reply
 
 
 """
 Task 2 - snake_case to cameCase
 """
 
-from typing import Any
+from typing import Any, Callable
 
 
-def camelize(key: str):
+# edge cases? if input not snake cased?
+def camelize(key: str) -> str:
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
+    split_key = key.split("_")
+    first_item = split_key[0]
+    camelized = first_item + "".join([item.lower().title() for item in split_key[1:]])
+    return camelized
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -42,6 +59,8 @@ async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
 """
 Task 3 - Handle User Actions
 """
+
+import re
 
 from pydantic import BaseModel
 
@@ -60,28 +79,100 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+class ProcessInstruction:
+    def __init__(
+        self,
+        keywords: set[str],
+        friends: dict[str, list[str]],
+        action_handler_by_keyword: dict[str, Callable],
+        request: ActionRequest,
+    ):
+        self.known_user = True if request.username in friends else False
+        self.keywords: set[str] = keywords
+        self.friends: dict[str, set[str]] = {
+            k: set([name.lower() for name in v]) for k, v, in friends.items()
+        }
+        self.parsed_instruction: set[str] = parse_action(request)
+        self.instruction: Optional[str] = extract_instraction(
+            self.parsed_instruction, self.keywords
+        )
+        self.person_to_call: Optional[str] = extract_callee(
+            self.known_user, self.parsed_instruction, self.friends, request
+        )
+        self.response: ActionResponse = execute_handler(
+            self.known_user,
+            self.person_to_call,
+            action_handler_by_keyword,
+            request,
+            self.instruction,
+        )
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def parse_action(request: ActionRequest) -> set[str]:
+    match_pattern = r"\W+"
+    parsed_instruction = set(
+        [item.lower() for item in re.split(match_pattern, request.action) if item]
+    )
+    return parsed_instruction
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def extract_instraction(
+    parsed_instruction: set[str], keywords: set[str]
+) -> Optional[str]:
+    if instructon := keywords.intersection(parsed_instruction):
+        return list(instructon)[0]
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def extract_callee(
+    known_user: bool,
+    parsed_instructions: set[str],
+    friends: dict[str, set[str]],
+    request: ActionRequest,
+) -> Optional[str]:
+    if known_user:
+        if callee := friends[request.username].intersection(parsed_instructions):
+            return list(callee)[0]
+
+
+def execute_handler(
+    known_user: bool,
+    callee: Optional[str],
+    action_handler_by_keyword: dict[str, Callable],
+    request: ActionRequest,
+    instruction: Optional[str],
+) -> ActionResponse:
+    if not known_user:
+        return ActionResponse(
+            message=f"Hi {request.username}, I don't know you yet. But I would love to meet you!"
+        )
+
+    if instruction and instruction in action_handler_by_keyword:
+        get_callable: ActionHandler = action_handler_by_keyword[instruction]
+        return ActionResponse(message=get_callable(callee, request))
+    else:
+        return ActionResponse(message=handle_unknown_action(request))
+
+
+def handle_call_action(person_to_call: str, request: ActionRequest) -> str:
+    if person_to_call:
+        return f"🤙 Calling {person_to_call.title()} ..."
+    else:
+        return f"{request.username}, I can't find this person in your contacts."
+
+
+ActionHandler = Callable[[ProcessInstruction, ActionRequest], str]
+
+
+def handle_reminder_action(person_to_call: str, request: ActionRequest) -> str:
+    return "🔔 Alright, I will remind you!"
+
+
+def handle_timer_action(person_to_call: str, request: ActionRequest) -> str:
+    return "⏰ Alright, the timer is set!"
+
+
+def handle_unknown_action(request: ActionRequest) -> str:
+    return "👀 Sorry , but I can't help with that!"
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -91,18 +182,20 @@ def task3_action(request: ActionRequest):
     #      of the action handlers
     # Write your code below
     ...
-    from random import choice
-
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
+    action_handler_by_keyword: dict[str, Callable] = {
+        "call": handle_call_action,
+        "remind": handle_reminder_action,
+        "timer": handle_timer_action,
+    }
+    keywords = set([item for item in action_handler_by_keyword])
+    processed_action = ProcessInstruction(
+        keywords=keywords,
+        friends=friends,
+        action_handler_by_keyword=action_handler_by_keyword,
+        request=request,
     )
-    return handler(request.action)
+
+    return processed_action.response
 
 
 """
@@ -232,3 +325,7 @@ for i in 1, 2, 3, 4:
     tags = [f"Task {i}"]
     app.get(f"/task{i}", summary="📝", description=info(), tags=tags)(info)
     app.get(f"/task{i}/help", summary="🙋", description=help_(), tags=tags)(help_)
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
