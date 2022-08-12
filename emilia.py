@@ -1,9 +1,7 @@
-from dis import Instruction
-from typing import Optional
-from wsgiref import validate
+from typing import Optional, Union
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -17,18 +15,18 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str, lang: str = "de") -> str:
+async def task1_greet(name: str, language: str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
 
-    unknown_language_reply = f"Hallo {name}, leider spreche ich nicht '{lang}'!"
+    unknown_language_reply = f"Hallo {name}, leider spreche ich nicht '{language}'!"
     available_languages = {
         "de": f"Hallo {name}, ich bin Emilia.",
         "en": f"Hello {name}, I am Emilia.",
         "es": f"Hola {name}, soy Emilia.",
     }
     reply = (
-        available_languages[lang]
-        if lang in available_languages
+        available_languages[language]
+        if language in available_languages
         else unknown_language_reply
     )
     return reply
@@ -183,27 +181,29 @@ def task3_action(request: ActionRequest):
 Task 4 - Security
 """
 
+import time
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
+from jose import jwt
+from jwt.exceptions import ExpiredSignatureError
 from passlib.context import CryptContext
 
 # create secret key with: openssl rand -hex 32
 SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
 ALOGRITHM = "HS256"
 
-encode_jwt = partial(jwt.encode, key=SECRET_KEY, algorithm=ALOGRITHM)
-decode_jwt = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALOGRITHM])
+encode_jwt: Callable = partial(jwt.encode, key=SECRET_KEY, algorithm=ALOGRITHM)
+decode_jwt: Callable = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALOGRITHM])
 
 _crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-verify_password = _crypt_context.verify
-hash_password = _crypt_context.hash
+verify_password: Callable = _crypt_context.verify
+hash_password: Callable = _crypt_context.hash
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/task4/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/task4/token")  # this is a callable
 
 fake_users_db = {
     "stefan": {
@@ -233,6 +233,10 @@ class Token(BaseModel):
     token_type: str
 
 
+class InvalidLogin(BaseModel):
+    detail: str
+
+
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
@@ -240,15 +244,22 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
-    payload = {
-        "sub": form_data.username,
-        "exp": datetime.utcnow() + timedelta(minutes=30),
-    }
-    return {
-        "access_token": encode_jwt(payload),
-        "token_type": "bearer",
-    }
+
+    if form_data.username in fake_users_db:
+        user: User = get_user(form_data.username)  # type: ignore
+        if verify_password(form_data.password, user.hashed_password):
+            payload = {
+                "sub": form_data.username,
+                "exp": datetime.utcnow() + timedelta(minutes=30),
+            }
+            return {
+                "access_token": encode_jwt(payload),
+                "token_type": "bearer",
+            }
+    raise HTTPException(status_code=401, detail="Incorrect username or password")
+
+
+PayloadType = dict[str, Union[datetime, str]]
 
 
 def get_user(username: str) -> Optional[User]:
@@ -257,7 +268,7 @@ def get_user(username: str) -> Optional[User]:
     return User(**fake_users_db[username])
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> Optional[User]:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid authentication credentials",
@@ -266,19 +277,37 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+    if decoded_token := decode_jwt_token(token):
+        if user := get_user(decoded_token["sub"]):  # type: ignore
+            return user
+    raise credentials_exception
+
+
+def decode_jwt_token(token: str) -> Optional[PayloadType]:
+    try:
+        decoded_token = decode_jwt(token)
+        if decoded_token["exp"] >= time.time():
+            return decoded_token
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Signature has expired.")
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
-    username: str, current_user: User = Depends(get_current_user)
+    username: str, request: Request, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
-    if user := get_user(username):
-        return user.secret
+    requesting_user = get_user(username)
+    if requesting_user and requesting_user.username != current_user.username:
+        raise HTTPException(status_code=403, detail="Don't spy on other user!")
+    elif not requesting_user:
+        raise HTTPException(
+            status_code=404,
+            detail="Hi {username}, I don't know you yet. But I would love to meet you!",
+        )
+    return requesting_user.secret
 
 
 """
