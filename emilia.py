@@ -39,7 +39,6 @@ Task 2 - snake_case to cameCase
 from typing import Any, Callable
 
 
-# edge cases? if input not snake cased?
 def camelize(key: str) -> str:
     """Takes string in snake_case format returns camelCase formatted version."""
     split_key = key.split("_")
@@ -77,7 +76,7 @@ class ActionResponse(BaseModel):
     message: str
 
 
-ActionHandler = Callable[[str, ActionRequest], str]
+ActionHandler = Callable[[ActionRequest, Optional[str]], str]
 
 
 def parse_action(request: ActionRequest) -> set[str]:
@@ -109,7 +108,6 @@ def extract_callee(
 def execute_handler(
     known_user: bool,
     callee: Optional[str],
-    action_handler_by_keyword: dict[str, Callable],
     request: ActionRequest,
     instruction: Optional[str],
 ) -> ActionResponse:
@@ -118,45 +116,45 @@ def execute_handler(
             message=f"Hi {request.username}, I don't know you yet. But I would love to meet you!"
         )
 
-    if instruction and instruction in action_handler_by_keyword:
-        get_callable: ActionHandler = action_handler_by_keyword[instruction]
-        return ActionResponse(message=get_callable(callee, request))
-    else:
-        return ActionResponse(message=handle_unknown_action(request))
+    handle_action: ActionHandler = get_action_handler_by_instruction(instruction)
+    return ActionResponse(message=handle_action(request, callee))
 
 
-def handle_call_action(person_to_call: str, request: ActionRequest) -> str:
+def handle_call_action(request: ActionRequest, person_to_call: Optional[str]) -> str:
     if person_to_call:
         return f"🤙 Calling {person_to_call.title()} ..."
     else:
         return f"{request.username}, I can't find this person in your contacts."
 
 
-def handle_reminder_action(person_to_call: str, request: ActionRequest) -> str:
+def handle_reminder_action(_: ActionRequest, __: Optional[str]) -> str:
     return "🔔 Alright, I will remind you!"
 
 
-def handle_timer_action(person_to_call: str, request: ActionRequest) -> str:
+def handle_timer_action(_: ActionRequest, __: Optional[str]) -> str:
     return "⏰ Alright, the timer is set!"
 
 
-def handle_unknown_action(request: ActionRequest) -> str:
+def handle_unknown_action(_: ActionRequest, __: Optional[str]) -> str:
     return "👀 Sorry , but I can't help with that!"
+
+
+action_handler_by_instruction: dict[str, ActionHandler] = {
+    "call": handle_call_action,
+    "remind": handle_reminder_action,
+    "timer": handle_timer_action,
+}
+
+
+def get_action_handler_by_instruction(instruction: Optional[str]) -> ActionHandler:
+    return action_handler_by_instruction.get(instruction or "", handle_unknown_action)
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    action_handler_by_keyword: dict[str, Callable] = {
-        "call": handle_call_action,
-        "remind": handle_reminder_action,
-        "timer": handle_timer_action,
-    }
-    keywords = set([item for item in action_handler_by_keyword])
+
+    keywords = set([item for item in action_handler_by_instruction])
     friends_set: dict[str, set[str]] = {
         k: set([name.lower() for name in v]) for k, v, in friends.items()
     }
@@ -169,7 +167,6 @@ def task3_action(request: ActionRequest):
     response: ActionResponse = execute_handler(
         known_user,
         person_to_call,
-        action_handler_by_keyword,
         request,
         instruction,
     )
@@ -196,14 +193,14 @@ from passlib.context import CryptContext
 SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
 ALOGRITHM = "HS256"
 
-encode_jwt: Callable = partial(jwt.encode, key=SECRET_KEY, algorithm=ALOGRITHM)
-decode_jwt: Callable = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALOGRITHM])
+encode_jwt = partial(jwt.encode, key=SECRET_KEY, algorithm=ALOGRITHM)
+decode_jwt = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALOGRITHM])
 
 _crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-verify_password: Callable = _crypt_context.verify
-hash_password: Callable = _crypt_context.hash
+verify_password = _crypt_context.verify
+hash_password = _crypt_context.hash
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/task4/token")  # this is a callable
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/task4/token")
 
 fake_users_db = {
     "stefan": {
@@ -233,17 +230,9 @@ class Token(BaseModel):
     token_type: str
 
 
-class InvalidLogin(BaseModel):
-    detail: str
-
-
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """Allows registered users to obtain a bearer token."""
-    # fixme 🔨, at the moment we allow everybody to obtain a token
-    # this is probably not very secure 🛡️ ...
-    # tip: check the verify_password above
-    # Write your code below
 
     if form_data.username in fake_users_db:
         user: User = get_user(form_data.username)  # type: ignore
@@ -277,9 +266,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Optional[User
         detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
     if decoded_token := decode_jwt_token(token):
         if user := get_user(decoded_token["sub"]):  # type: ignore
             return user
@@ -302,8 +288,6 @@ async def read_user_secret(
     username: str, request: Request, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
-    # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
     requesting_user = get_user(username)
     if requesting_user and requesting_user.username != current_user.username:
         raise HTTPException(
@@ -337,8 +321,8 @@ async def hello():
 identity = lambda x: x
 for i in 1, 2, 3, 4:
     task = messages[f"task{i}"]
-    info = partial(identity, task["info"])
-    help_ = partial(identity, task["help"])
+    info = partial(identity, task["info"])  # type: ignore
+    help_ = partial(identity, task["help"])  # type: ignore
     tags = [f"Task {i}"]
     app.get(f"/task{i}", summary="📝", description=info(), tags=tags)(info)
     app.get(f"/task{i}/help", summary="🙋", description=help_(), tags=tags)(help_)
