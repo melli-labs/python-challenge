@@ -79,33 +79,7 @@ class ActionResponse(BaseModel):
     message: str
 
 
-class ProcessInstruction:
-    def __init__(
-        self,
-        keywords: set[str],
-        friends: dict[str, list[str]],
-        action_handler_by_keyword: dict[str, Callable],
-        request: ActionRequest,
-    ):
-        self.known_user = True if request.username in friends else False
-        self.keywords: set[str] = keywords
-        self.friends: dict[str, set[str]] = {
-            k: set([name.lower() for name in v]) for k, v, in friends.items()
-        }
-        self.parsed_instruction: set[str] = parse_action(request)
-        self.instruction: Optional[str] = extract_instraction(
-            self.parsed_instruction, self.keywords
-        )
-        self.person_to_call: Optional[str] = extract_callee(
-            self.known_user, self.parsed_instruction, self.friends, request
-        )
-        self.response: ActionResponse = execute_handler(
-            self.known_user,
-            self.person_to_call,
-            action_handler_by_keyword,
-            request,
-            self.instruction,
-        )
+ActionHandler = Callable[[str, ActionRequest], str]
 
 
 def parse_action(request: ActionRequest) -> set[str]:
@@ -127,10 +101,10 @@ def extract_callee(
     known_user: bool,
     parsed_instructions: set[str],
     friends: dict[str, set[str]],
-    request: ActionRequest,
+    username: str,
 ) -> Optional[str]:
     if known_user:
-        if callee := friends[request.username].intersection(parsed_instructions):
+        if callee := friends[username].intersection(parsed_instructions):
             return list(callee)[0]
 
 
@@ -160,9 +134,6 @@ def handle_call_action(person_to_call: str, request: ActionRequest) -> str:
         return f"{request.username}, I can't find this person in your contacts."
 
 
-ActionHandler = Callable[[ProcessInstruction, ActionRequest], str]
-
-
 def handle_reminder_action(person_to_call: str, request: ActionRequest) -> str:
     return "🔔 Alright, I will remind you!"
 
@@ -188,14 +159,24 @@ def task3_action(request: ActionRequest):
         "timer": handle_timer_action,
     }
     keywords = set([item for item in action_handler_by_keyword])
-    processed_action = ProcessInstruction(
-        keywords=keywords,
-        friends=friends,
-        action_handler_by_keyword=action_handler_by_keyword,
-        request=request,
+    friends_set: dict[str, set[str]] = {
+        k: set([name.lower() for name in v]) for k, v, in friends.items()
+    }
+    known_user = True if request.username in friends else False
+    parsed_action: set[str] = parse_action(request)
+    instruction: Optional[str] = extract_instraction(parsed_action, keywords)
+    person_to_call: Optional[str] = extract_callee(
+        known_user, parsed_action, friends_set, request.username
+    )
+    response: ActionResponse = execute_handler(
+        known_user,
+        person_to_call,
+        action_handler_by_keyword,
+        request,
+        instruction,
     )
 
-    return processed_action.response
+    return response
 
 
 """
