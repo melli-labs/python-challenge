@@ -1,4 +1,7 @@
-from fastapi import FastAPI
+from email import message
+from http import HTTPStatus
+from urllib import response
+from fastapi import FastAPI, status
 
 app = FastAPI(
     title="Emilia Hiring Challenge 👩‍💻",
@@ -12,11 +15,19 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
     ...
-    return f"Hello {name}, I am Emilia."
+    responseMessage = {
+        "de": f"Hallo {name}, ich bin Emilia.",
+        "en": f"Hello {name}, I am Emilia.",
+        "es": f"Hola {name}, soy Emilia."
+    }
+    if language in responseMessage.keys():
+        return responseMessage[language]
+    else:
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
 
 
 """
@@ -30,6 +41,11 @@ def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
     ...
+    words = key.split("_")
+    for i in range (1, len(words)):
+        words[i] = words[i].capitalize()
+    key = "".join(words)
+
     return key
 
 
@@ -60,28 +76,39 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(request: ActionRequest):
+    # Write your code below
+    if request.username in friends:
+        friendsOfUser = friends[request.username]
+    else:
+        return ActionResponse(message = f"Hi {request.username}, I don't know you yet. But I would love to meet you!")
+    
+    for friend in friendsOfUser:
+        if friend.casefold() in request.action.casefold():
+            return ActionResponse(message = f"🤙 Calling {friend} ...")
+            
+    return ActionResponse(message = f"{request.username}, I can't find this person in your contacts.")
+    
+
+
+def handle_reminder_action(request: ActionRequest):
+    # Write your code below
+    if request.username not in friends:
+        return ActionResponse(message = f"Hi {request.username}, I don't know you yet. But I would love to meet you!")
+    return ActionResponse(message = "🔔 Alright, I will remind you!")
+
+
+def handle_timer_action(request: ActionRequest):
+    # Write your code below
+    if request.username not in friends:
+        return ActionResponse(message = f"Hi {request.username}, I don't know you yet. But I would love to meet you!")
+    return ActionResponse(message = "⏰ Alright, the timer is set!")
+
+
+def handle_unknown_action():
     # Write your code below
     ...
-    return "🤙 Why don't you call them yourself!"
-
-
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
-
-
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
-
-
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+    return ActionResponse(message = "👀 Sorry , but I can't help with that!")
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -91,18 +118,16 @@ def task3_action(request: ActionRequest):
     #      of the action handlers
     # Write your code below
     ...
-    from random import choice
 
     # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    if "call" in request.action.casefold():
+        return handle_call_action(request)
+    elif "remind" in request.action.casefold():
+        return handle_reminder_action(request)
+    elif "timer" in request.action.casefold():
+        return handle_timer_action(request)
+    else:
+        return handle_unknown_action()
 
 
 """
