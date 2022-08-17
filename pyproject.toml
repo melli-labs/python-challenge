@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "hiring"
 version = "1.0.0"
-description = "Fix this project and get a job at mit-emilia.de!"
-authors = ["Your Name <you@example.com>"]
+description = "Fix this project and get a job at melli.com!"
+authors = ["Melli <melli@melli.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"

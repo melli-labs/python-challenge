@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
 app = FastAPI(
-    title="Emilia Hiring Challenge 👩‍💻",
-    description="Help Emilia 👩 to fix our tests and get a job interview 💼🎙️!",
+    title="Melli Hiring Challenge 👩‍💻",
+    description="Help Melli 👩 to fix our tests and get a job interview 💼🎙️!",
 )
 
 
@@ -16,7 +16,7 @@ async def task1_greet(name: str) -> str:
     """Greet somebody in German, English or Spanish!"""
     # Write your code below
     ...
-    return f"Hello {name}, I am Emilia."
+    return f"Hello {name}, I am Melli."
 
 
 """
@@ -134,13 +134,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/task4/token")
 fake_users_db = {
     "stefan": {
         "username": "stefan",
-        "email": "stefan.buchkremer@meetap.de",
+        "email": "stefan.buchkremer@melli.com",
         "hashed_password": hash_password("decent-espresso-by-john-buckmann"),
         "secret": "I love pressure-profiled espresso ☕!",
     },
     "felix": {
         "username": "felix",
-        "email": "felix.andreas@meetap.de",
+        "email": "felix.andreas@melli.com",
         "hashed_password": hash_password("elm>javascript"),
         "secret": "Rust 🦀 is the best programming language ever!",
     },
@@ -219,7 +219,7 @@ from tomlkit.api import parse
 messages = parse((Path(__file__).parent / "messages.toml").read_text("utf-8"))
 
 
-@app.get("/", summary="👋", tags=["Emilia"])
+@app.get("/", summary="👋", tags=["Melli"])
 async def hello():
     return messages["hello"]
 

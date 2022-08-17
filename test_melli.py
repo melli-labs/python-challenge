@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
-from emilia import app
+from melli import app
 
 
 @pytest.fixture()
@@ -15,15 +15,15 @@ async def async_client():
 async def test_task1(async_client):
     response = await async_client.get("/task1/greet/Jasmin")
     assert response.status_code == 200
-    assert response.json() == "Hallo Jasmin, ich bin Emilia."
+    assert response.json() == "Hallo Jasmin, ich bin Melli."
 
     response = await async_client.get("/task1/greet/Stefan", params={"language": "en"})
     assert response.status_code == 200
-    assert response.json() == "Hello Stefan, I am Emilia."
+    assert response.json() == "Hello Stefan, I am Melli."
 
     response = await async_client.get("/task1/greet/Hans", params={"language": "es"})
     assert response.status_code == 200
-    assert response.json() == "Hola Hans, soy Emilia."
+    assert response.json() == "Hola Hans, soy Melli."
 
     response = await async_client.get("/task1/greet/Ben", params={"language": "ita"})
     assert response.status_code == 200
@@ -40,12 +40,12 @@ def test_task1_success_message():
 
 @pytest.mark.asyncio
 async def test_task2(async_client):
-    data = {"company_name": "Emilia", "is_future_unicorn": True}
+    data = {"company_name": "Melli", "is_future_unicorn": True}
 
     response = await async_client.post("/task2/camelize", json=data)
     assert response.status_code == 200
     assert response.json() == {
-        "companyName": "Emilia",
+        "companyName": "Melli",
         "isFutureUnicorn": True,
     }
 
@@ -160,7 +160,7 @@ class TestTask3:
             "/task3/action",
             json={
                 "username": "Ben",
-                "action": "Hey Emilia, remind me to rewrite our PHP backend in Rust 🦀!",
+                "action": "Hey Melli, remind me to rewrite our PHP backend in Rust 🦀!",
             },
         )
         assert response.status_code == 200
@@ -175,7 +175,7 @@ def test_task3_success_message():
         " ⭐ This was really hard, congratulations! You're awesome 🙌!"
         " If you really wanna impress us, there is an optional bonus task at `/task4`."
         " But if you're short on time you can already create a pull request at"
-        " https://github.com/mit-emilia/hiring!"
+        " https://github.com/melli-labs/python-challenge!"
     )
 
 
@@ -237,5 +237,5 @@ def test_task4_success_message():
     print(
         " 🤩 Amazing! This is really impressive. Here is your prize 🏆!"
         " We would love to get in touch with you 💯. Therefore, create"
-        " a pull request at https://github.com/mit-emilia/hiring!"
+        " a pull request at https://github.com/melli-labs/python-challenge!"
     )

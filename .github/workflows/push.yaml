@@ -1,4 +1,4 @@
-name: Emilia Hiring Challenge
+name: Melli Hiring Challenge
 on: [push, pull_request]
 jobs:
   test:
