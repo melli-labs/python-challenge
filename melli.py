@@ -35,9 +35,13 @@ from typing import Any
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
     # Write your code below
-    ...
-    return key
-
+    words = key.split("_")
+    i=1
+    while i < len(words):
+      words[i] = words[i].title()
+      i += 1
+    camelized = "".join(words)
+    return camelized
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
