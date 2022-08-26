@@ -5,18 +5,20 @@ app = FastAPI(
     description="Help Melli 👩 to fix our tests and get a job interview 💼🎙️!",
 )
 
-
 """
 Task 1 - Warmup
 """
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Melli."
+    languages = {"en": f"Hello {name}, I am Melli.", "de": f"Hallo {name}, ich bin Melli.",
+                 "es": f"Hola {name}, soy Melli."}
+    if language in languages.keys():
+        return languages.get(language)
+    else:
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
 
 
 """
@@ -27,10 +29,8 @@ from typing import Any
 
 
 def camelize(key: str):
-    """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
+    parts = key.split("_")
+    return parts[0].lower() + "".join([p.capitalize() for p in parts[1:]])
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -44,6 +44,7 @@ Task 3 - Handle User Actions
 """
 
 from pydantic import BaseModel
+import re
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -60,28 +61,25 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(request: ActionRequest):
+    regex = re.search(r"\w+\s+([A-Z][a-z]+)", request.action)
+    friend = regex.group(1)
+    if friend in friends.get(request.username):
+        return {"message": f"🤙 Calling {friend} ..."}
+    else:
+        return {'message': f"{request.username}, I can't find this person in your contacts."}
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_reminder_action(request: ActionRequest):
+    return {'message': '🔔 Alright, I will remind you!'}
 
 
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action(request: ActionRequest):
+    return {'message': '⏰ Alright, the timer is set!'}
 
 
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action(request: ActionRequest):
+    return {'message': "👀 Sorry , but I can't help with that!"}
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -89,20 +87,16 @@ def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
+    if request.username not in friends.keys():
+        return {"message": f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    ops = {"remind": handle_reminder_action, "timer": handle_timer_action,
+           "call": handle_call_action}
+
+    for k in ops.keys():
+        if k in request.action.lower():
+            return ops.get(k)(request)
+    return handle_unknown_action(request)
 
 
 """
@@ -115,7 +109,7 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
+from jose import jwt
 from passlib.context import CryptContext
 
 # create secret key with: openssl rand -hex 32
@@ -197,7 +191,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
-    username: str, current_user: User = Depends(get_current_user)
+        username: str, current_user: User = Depends(get_current_user)
 ):
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
