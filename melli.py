@@ -1,4 +1,3 @@
-from urllib import response
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -111,7 +110,7 @@ def task3_action(request: ActionRequest):
     #      of the action handlers
     # Write your code below
     
-    
+
     if request.username not in friends:
         return {"message": f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
 
