@@ -110,9 +110,8 @@ def task3_action(request: ActionRequest):
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    print(request.action.lower(), request.action.lower().find("call"))
-
+    
+    
     if request.username not in friends:
         return {"message": f"Hi {request.username}, I don't know you yet. But I would love to meet you!"}
 
