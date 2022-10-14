@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
-from enum import Enum
 from functools import partial
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -11,129 +10,63 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from tomlkit.api import parse
 
+import service
+from constants import Language, text_for_app
+from schemas import ActionRequest, ActionResponse, Token, User
+
 app = FastAPI(
     title="Melli Hiring Challenge 👩‍💻",
     description="Help Melli 👩 to fix our tests and get a job interview 💼🎙️!",
 )
 
 
-"""
-Task 1 - Warmup
-"""
-
-
-class Language(Enum):
-    """ Enum for handling the supported languages in one place. Single Source Of Truth."""
-    spanish = "es"
-    english = "en"
-    german = "de"
-
-
-text_for_app = {
-    "de": {"greeting": "Hallo name_var, ich bin Melli."},
-    "en": {"greeting": "Hello name_var, I am Melli."},
-    "es": {"greeting": "Hola name_var, soy Melli."},
-    "not supported": {"greeting": "Hallo name_var, leider spreche ich nicht 'language_var'!"}
-}
-
-
-def valid_language(language: Optional[str] = "de") -> tuple:
-    if not language in [lang.value for lang in Language]:
-        return ("not supported", language)
-
-    return ("supported", language)
-
-
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str, language: Tuple[str, str] = Depends(valid_language)) -> str:
+async def task1_greet(
+    name: str, language: Tuple[str, str] = Depends(service.valid_language)
+) -> str:
     """Greet somebody in German, English or Spanish!"""
     if language[0] == "not supported":
-        return text_for_app[language[0]]["greeting"].replace("name_var", name).replace("language_var", language[1])
+        return (
+            text_for_app[language[0]]["greeting"]
+            .replace("name_var", name)
+            .replace("language_var", language[1])
+        )
 
     if language[0] == "supported":
         return text_for_app[language[1]]["greeting"].replace("name_var", name)
 
 
-"""
-Task 2 - snake_case to cameCase
-"""
-
-
-def camelize(key: str):
-    """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
-
-
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
     """Takes a JSON object and transfroms all keys from snake_case to camelCase."""
-    return {camelize(key): value for key, value in data.items()}
+    return {service.camelize(key): value for key, value in data.items()}
 
 
-"""
-Task 3 - Handle User Actions
-"""
-
-friends = {
-    "Matthias": ["Sahar", "Franziska", "Hans"],
-    "Stefan": ["Felix", "Ben", "Philip"],
-}
-
-
-class ActionRequest(BaseModel):
-    username: str
-    action: str
-
-
-class ActionResponse(BaseModel):
-    message: str
-
-
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
-
-
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
-
-
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
-
-
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
-
-
-@app.post("/task3/action", tags=["Task 3"], summary="🤌")
+@app.post("/task3/action", tags=["Task 3"], summary="🤌", response_model=ActionResponse)
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
     # Write your code below
-    ...
-    from random import choice
+    user = request.username
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    if user not in service.action_handler.friends.keys():
+        return ActionResponse(
+            message=f"Hi {user}, I don't know you yet. But I would love to meet you!"
+        )
+
+    intent = service.intention.recognize(request.action)
+
+    user_friends = service.action_handler.friends[user]
+
+    action = service.action_handler.decide(intent)
+
+    return ActionResponse(message=action.execute(request.action, user_friends, user))
+
+
+"""
+Task 3 - Handle User Actions
+"""
 
 
 """
@@ -167,18 +100,6 @@ fake_users_db = {
         "secret": "Rust 🦀 is the best programming language ever!",
     },
 }
-
-
-class User(BaseModel):
-    username: str
-    email: str
-    hashed_password: str
-    secret: str
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
 
 
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
