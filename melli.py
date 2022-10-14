@@ -1,4 +1,15 @@
-from fastapi import FastAPI
+from datetime import datetime, timedelta
+from enum import Enum
+from functools import partial
+from pathlib import Path
+from typing import Any, Optional, Tuple
+
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
+from tomlkit.api import parse
 
 app = FastAPI(
     title="Melli Hiring Challenge 👩‍💻",
@@ -11,19 +22,41 @@ Task 1 - Warmup
 """
 
 
+class Language(Enum):
+    """ Enum for handling the supported languages in one place. Single Source Of Truth."""
+    spanish = "es"
+    english = "en"
+    german = "de"
+
+
+text_for_app = {
+    "de": {"greeting": "Hallo name_var, ich bin Melli."},
+    "en": {"greeting": "Hello name_var, I am Melli."},
+    "es": {"greeting": "Hola name_var, soy Melli."},
+    "not supported": {"greeting": "Hallo name_var, leider spreche ich nicht 'language_var'!"}
+}
+
+
+def valid_language(language: Optional[str] = "de") -> tuple:
+    if not language in [lang.value for lang in Language]:
+        return ("not supported", language)
+
+    return ("supported", language)
+
+
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: Tuple[str, str] = Depends(valid_language)) -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Melli."
+    if language[0] == "not supported":
+        return text_for_app[language[0]]["greeting"].replace("name_var", name).replace("language_var", language[1])
+
+    if language[0] == "supported":
+        return text_for_app[language[1]]["greeting"].replace("name_var", name)
 
 
 """
 Task 2 - snake_case to cameCase
 """
-
-from typing import Any
 
 
 def camelize(key: str):
@@ -42,8 +75,6 @@ async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
 """
 Task 3 - Handle User Actions
 """
-
-from pydantic import BaseModel
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -108,15 +139,6 @@ def task3_action(request: ActionRequest):
 """
 Task 4 - Security
 """
-
-from datetime import datetime, timedelta
-from functools import partial
-from typing import Optional
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 # create secret key with: openssl rand -hex 32
 SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
@@ -210,11 +232,6 @@ async def read_user_secret(
 """
 Task and Help Routes
 """
-
-from functools import partial
-from pathlib import Path
-
-from tomlkit.api import parse
 
 messages = parse((Path(__file__).parent / "messages.toml").read_text("utf-8"))
 
