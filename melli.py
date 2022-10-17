@@ -1,18 +1,17 @@
 from datetime import datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, Tuple
 
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from pydantic import BaseModel
+from fastapi.security import OAuth2PasswordRequestForm
 from tomlkit.api import parse
 
-import service
-from constants import Language, text_for_app
+import dep
+import services
+from db import get_user, text_for_app
 from schemas import ActionRequest, ActionResponse, Token, User
+from security import encode_jwt, verify_password
 
 app = FastAPI(
     title="Melli Hiring Challenge 👩‍💻",
@@ -20,9 +19,14 @@ app = FastAPI(
 )
 
 
+"""
+Task 1 - Warmup
+"""
+
+
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
 async def task1_greet(
-    name: str, language: Tuple[str, str] = Depends(service.valid_language)
+    name: str, language: Tuple[str, str] = Depends(dep.valid_language)
 ) -> str:
     """Greet somebody in German, English or Spanish!"""
     if language[0] == "not supported":
@@ -36,10 +40,20 @@ async def task1_greet(
         return text_for_app[language[1]]["greeting"].replace("name_var", name)
 
 
+"""
+Task 2 - snake_case to cameCase
+"""
+
+
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
     """Takes a JSON object and transfroms all keys from snake_case to camelCase."""
-    return {service.camelize(key): value for key, value in data.items()}
+    return {services.camelize(key): value for key, value in data.items()}
+
+
+"""
+Task 3 - Handle User Actions
+"""
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌", response_model=ActionResponse)
@@ -50,56 +64,23 @@ def task3_action(request: ActionRequest):
     # Write your code below
     user = request.username
 
-    if user not in service.action_handler.friends.keys():
+    if user not in services.action_handler.friends.keys():
         return ActionResponse(
             message=f"Hi {user}, I don't know you yet. But I would love to meet you!"
         )
 
-    intent = service.intention.recognize(request.action)
+    intent = services.intention.recognize(request.action)
 
-    user_friends = service.action_handler.friends[user]
+    user_friends = services.action_handler.friends[user]
 
-    action = service.action_handler.decide(intent)
+    action = services.action_handler.decide(intent)
 
     return ActionResponse(message=action.execute(request.action, user_friends, user))
 
 
 """
-Task 3 - Handle User Actions
-"""
-
-
-"""
 Task 4 - Security
 """
-
-# create secret key with: openssl rand -hex 32
-SECRET_KEY = "069d49a9c669ddc08f496352166b7b5d270ff64d3009fc297689aa8b0fb66d98"
-ALOGRITHM = "HS256"
-
-encode_jwt = partial(jwt.encode, key=SECRET_KEY, algorithm=ALOGRITHM)
-decode_jwt = partial(jwt.decode, key=SECRET_KEY, algorithms=[ALOGRITHM])
-
-_crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-verify_password = _crypt_context.verify
-hash_password = _crypt_context.hash
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/task4/token")
-
-fake_users_db = {
-    "stefan": {
-        "username": "stefan",
-        "email": "stefan.buchkremer@melli.com",
-        "hashed_password": hash_password("decent-espresso-by-john-buckmann"),
-        "secret": "I love pressure-profiled espresso ☕!",
-    },
-    "felix": {
-        "username": "felix",
-        "email": "felix.andreas@melli.com",
-        "hashed_password": hash_password("elm>javascript"),
-        "secret": "Rust 🦀 is the best programming language ever!",
-    },
-}
 
 
 @app.post("/task4/token", response_model=Token, summary="🔒", tags=["Task 4"])
@@ -109,45 +90,48 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
     # Write your code below
-    ...
+    user = get_user(form_data.username)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+        )
+
+    if not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+        )
+
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
     }
-    return {
+
+    jwt_token = {
         "access_token": encode_jwt(payload),
         "token_type": "bearer",
     }
 
-
-def get_user(username: str) -> Optional[User]:
-    if username not in fake_users_db:
-        return
-    return User(**fake_users_db[username])
-
-
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid authentication credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    # check if the token 🪙 is valid and return a user as specified by the tokens payload
-    # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
+    return Token(**jwt_token)
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
 async def read_user_secret(
-    username: str, current_user: User = Depends(get_current_user)
+    username: str, current_user: User = Depends(dep.get_current_user)
 ):
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
     # Write your code below
-    ...
-    if user := get_user(username):
-        return user.secret
+
+    if current_user != get_user(username):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Don't spy on other user!",
+        )
+
+    return current_user.secret
 
 
 """

@@ -1,13 +1,8 @@
-from typing import Any, Optional, Tuple, List
-from constants import Language
-from fastapi import HTTPException
 from abc import ABC, abstractmethod
+from typing import List, Optional
 
-def valid_language(language: Optional[str] = "de") -> tuple:
-    if not language in [lang.value for lang in Language]:
-        return ("not supported", language)
+from fastapi import HTTPException
 
-    return ("supported", language)
 
 def is_snake_case(key):
     """Check that all chars are lowercase, at least one underscore is included and there is not number at first position."""
@@ -25,68 +20,93 @@ def is_snake_case(key):
 
     return set(key_bools) == {True}
 
+
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
+
     if is_snake_case(key):
         key_list = key.split("_")
         rest_list = "".join([k.title() for k in key_list[1:]])
         return f"{key_list[0]}{rest_list}"
     else:
         raise HTTPException(
-            status_code=422, detail="Ups, das wird nicht funktionieren, da der von dir bereitgestellte String nicht der Snake Case Convention folgt."
+            status_code=422,
+            detail="Ups, das wird nicht funktionieren, da der von dir bereitgestellte String nicht der Snake Case Convention folgt.",
         )
 
 
 class Action(ABC):
+    """Interface like class for all actions."""
 
     @abstractmethod
     def execute(self, action: str, user_friends: List[str], user: Optional[str] = None):
         pass
 
+
 class Call(Action):
+    """Action for calling someone."""
+
     intent = "call"
-    
+
     def execute(self, action: str, user_friends: List[str], user: Optional[str] = None):
-        # Write your code below
+        """Call someone by checking on the user and the friend."""
 
         if not user:
             raise HTTPException(
-                status_code=409, detail="This error is unexpected. Please make sure to provide an existing username."
+                status_code=409,
+                detail="This error is unexpected. Please make sure to provide an existing username.",
             )
 
         for u_f in user_friends:
             if u_f in action:
                 return f"🤙 Calling {u_f} ..."
-              
+
         return f"{user}, I can't find this person in your contacts."
 
+
 class Reminder(Action):
+    """Action for setting a reminder."""
+
     intent = "remind"
 
     def execute(self, action: str, user_friends: List[str], user: Optional[str] = None):
+        """Remind by doing something."""
+
         return "🔔 Alright, I will remind you!"
 
+
 class Timer(Action):
+    """Action for setting a timer."""
+
     intent = "timer"
 
     def execute(self, action: str, user_friends: List[str], user: Optional[str] = None):
+        """Stop time by doing something."""
+
         return "⏰ Alright, the timer is set!"
 
+
 class Unknown(Action):
+    """Action if we don't have the appropriate task at hand."""
+
     intent = "unknown"
 
     def execute(self, action: str, user_friends: List[str], user: Optional[str] = None):
+        """Stop time by doing something."""
+
         return "👀 Sorry , but I can't help with that!"
+
 
 call_action = Call()
 reminder_action = Reminder()
 timer_action = Timer()
 unknown_action = Unknown()
 
-class ActionHandler():
-    actions = [call_action, reminder_action, timer_action, unknown_action]
 
+class ActionHandler:
+    """Handles to executed the appropriate action."""
+
+    actions = [call_action, reminder_action, timer_action, unknown_action]
 
     def __init__(self) -> None:
         self.friends = {
@@ -95,24 +115,27 @@ class ActionHandler():
         }
 
     def decide(self, intent: str):
+        """Decide on which action by checking on the intent."""
         for action in self.actions:
             if intent == action.intent:
                 return action
 
-class Intention():
+
+class Intention:
     def __init__(self) -> None:
         pass
 
     def recognize(self, text: str):
-        print(text.lower())
+        """Recognize an intent by checking for lower cased words in the text of the user."""
         if "call" in text.lower():
             return "call"
         if "remind" in text.lower():
             return "remind"
         if "timer" in text.lower():
             return "timer"
-        
+
         return "unknown"
+
 
 intention = Intention()
 

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class ActionRequest(BaseModel):
     username: str
     action: str
