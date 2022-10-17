@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
-from melli import app
+from app.melli import app
 
 
 @pytest.fixture()

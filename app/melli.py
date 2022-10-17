@@ -7,11 +7,11 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from tomlkit.api import parse
 
-import dep
-import services
-from db import get_user, text_for_app
-from schemas import ActionRequest, ActionResponse, Token, User
-from security import encode_jwt, verify_password
+from app import dep
+from app import services
+from app.db import get_user, text_for_app
+from app.schemas import ActionRequest, ActionResponse, Token, User
+from app.security import encode_jwt, verify_password
 
 app = FastAPI(
     title="Melli Hiring Challenge 👩‍💻",

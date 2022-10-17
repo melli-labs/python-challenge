@@ -1,7 +1,7 @@
 from typing import Optional
 
-from schemas import User
-from security import hash_password
+from app.schemas import User
+from app.security import hash_password
 
 text_for_app = {
     "de": {"greeting": "Hallo name_var, ich bin Melli."},

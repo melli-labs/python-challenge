@@ -4,10 +4,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
 
-import db
-from constants import Language
-from schemas import User
-from security import decode_jwt
+from app import db
+from app.constants import Language
+from app.schemas import User
+from app.security import decode_jwt
 
 
 def valid_language(language: Optional[str] = "de") -> tuple:
