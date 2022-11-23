@@ -9,14 +9,20 @@ app = FastAPI(
 """
 Task 1 - Warmup
 """
-
+from typing import Union
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def read_item(name: str, language: Union[str,None] = "de"):
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Melli."
+    # Code for Task 1: take language into account. Default language is de.
+    if (language=="de"):
+        return f"Hallo {name}, ich bin Melli."
+    elif (language=="en"):
+        return f"Hello {name}, I am Melli."
+    elif(language=="es"):
+        return f"Hola {name}, soy Melli."
+    else:
+        return f"Hallo {name}, leider spreche ich nicht '{language}'!"
 
 
 """
@@ -28,9 +34,13 @@ from typing import Any
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
-    return key
+    # Code for Task 2
+    stringList = key.split('_')
+    camelString = stringList[0]
+    del stringList[0]
+    for item in stringList:
+        camelString+=item.capitalize() 
+    return camelString
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
@@ -60,49 +70,61 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(request: ActionRequest):
+    # Call the friend, if you know him
+    for item in sentenceAsList(request.action):
+        if (item in friends.get(request.username)): #friends name known 
+            return ActionResponse(message=f"🤙 Calling {item} ...")
+    return ActionResponse(message=f"{request.username}, I can't find this person in your contacts.")
+       
+    
+    
+def handle_reminder_action(request: ActionRequest):
+    # Set a reminder
+    return ActionResponse(message = f"🔔 Alright, I will remind you!")
+    
 
+def handle_timer_action(request: ActionRequest):
+    # Set the timer
+    return ActionResponse(message = f"⏰ Alright, the timer is set!")
+  
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
-
-
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
-
-
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
-
+def handle_unknown_action(request: ActionRequest):
+    # User not yet known
+    if (request.username not in friends):
+        return ActionResponse(message =f"Hi {request.username}, I don't know you yet. But I would love to meet you!")
+   
+    # Action unknown
+    return ActionResponse(message=  f"👀 Sorry , but I can't help with that!")
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
+    
+    # Code for task 3
+    handler = handle_unknown_action #default case
+    userSentenceAsList = sentenceAsList(request.action)
+    for word in userSentenceAsList:
+        if (request.username in friends):       #user is known
+            word = word.lower()
+            if (word=="call"):
+                handler = handle_call_action
+            elif (word=="remind"):
+                handler=handle_reminder_action
+            elif (word=="timer"):
+                handler=handle_timer_action
+    return handler(request)
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+#Get a string list from a sentence without space or punctuation
+def sentenceAsList(sentence: str):
+    import string
+    userSentenceAsList=""
+    for letter in sentence:
+        if not letter in string.punctuation:
+            userSentenceAsList+=letter
+    return userSentenceAsList.split(' ')
 
 
 """
