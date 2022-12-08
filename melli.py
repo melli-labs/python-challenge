@@ -1,3 +1,5 @@
+from typing import Any,Union
+
 from fastapi import FastAPI
 
 app = FastAPI(
@@ -12,24 +14,32 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
-    """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Melli."
-
-
+async def task1_greet(name: str, language: Union[str, None] = None) -> str:
+    """Greet somebody in German, English or Spanish!"""        
+    if language:
+        if language == "en":
+            return f"Hello {name}, I am Melli."
+        elif language == "es":
+            return f"Hola {name}, soy Melli."
+        else:
+            return f"Hallo {name}, leider spreche ich nicht '{language}'!"            
+    else:
+        return f"Hallo {name}, ich bin Melli."
+    
 """
 Task 2 - snake_case to cameCase
 """
 
-from typing import Any
-
-
 def camelize(key: str):
-    """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
+    """Takes string in snake_case format returns camelCase formatted version."""     
+    spl = key.split("_")    
+    if len(spl) == 1:
+        key = spl[0]
+    else:
+        key = spl[:1]
+        key_end = [s.capitalize() for s in spl[1:]]
+        key.extend(key_end)
+        key = "".join(key)    
     return key
 
 
@@ -44,6 +54,7 @@ Task 3 - Handle User Actions
 """
 
 from pydantic import BaseModel
+import re
 
 friends = {
     "Matthias": ["Sahar", "Franziska", "Hans"],
@@ -60,49 +71,59 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
+def handle_call_action(action: str, username: str):
     # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+    if username in friends.keys():
+        lookfor = "|".join(friends[username])
+        matches = re.findall(lookfor, action)
+        try:
+            friend = matches[0]
+            themessage = f"🤙 Calling {friend} ..."        
+        
+        except IndexError:
+            themessage = f"{username}, I can't find this person in your contacts."    
+       
+        return themessage
+    else:
+        return f"Hi {username}, I don't know you yet. But I would love to meet you!"
+        
+    
+def handle_reminder_action(action: str, username: str):
+    if username in friends.keys():   
+        return "🔔 Alright, I will remind you!"
+    else:
+        return f"Hi {username}, I don't know you yet. But I would love to meet you!"
 
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
-
-
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
+def handle_timer_action(action: str, username: str):    
+    if username in friends.keys():
+        return "⏰ Alright, the timer is set!"
+    else:
+        return f"Hi {username}, I don't know you yet. But I would love to meet you!"
 
 
 def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+    
+    return "👀 Sorry , but I can't help with that!"
 
 
-@app.post("/task3/action", tags=["Task 3"], summary="🤌")
+@app.post("/task3/action", tags=["Task 3"], summary="🤌", response_model=ActionResponse)
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
-
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    # Write your code below ...
+        
+    if re.search(r"[Cc]all", request.action):
+        mymessage = handle_call_action(request.action, request.username)    
+    elif re.search(r"[Rr]emind(er)?", request.action):
+        mymessage = handle_reminder_action(request.action, request.username)
+    elif re.search(r"timer", request.action):
+        mymessage = handle_timer_action(request.action, request.username)
+    else:
+        mymessage =  handle_unknown_action(request.action)
+    
+    return {"message": mymessage}
 
 
 """
@@ -192,7 +213,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
     # Write your code below
-    ...
+
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
