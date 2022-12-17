@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from typing import Union
 
 app = FastAPI(
     title="Melli Hiring Challenge 👩‍💻",
@@ -12,7 +13,7 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str, language: str | None = None) -> str:
+async def task1_greet(name: str, language: Union[str, None] = None) -> str:
     """Greet somebody in German, English or Spanish!"""
     if not language or language == "de":
         answer = f"Hallo {name}, ich bin Melli."
