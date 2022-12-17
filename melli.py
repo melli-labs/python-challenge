@@ -12,11 +12,17 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str | None = None) -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Melli."
+    if not language or language == "de":
+        answer = f"Hallo {name}, ich bin Melli."
+    elif language == "en":
+        answer = f"Hello {name}, I am Melli."
+    elif language == "es":
+        answer = f"Hola {name}, soy Melli."
+    else:
+        answer = f"Hallo {name}, leider spreche ich nicht '{language}'!"
+    return answer
 
 
 """
@@ -28,8 +34,9 @@ from typing import Any
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
+    words = key.split("_")
+    key = "".join(word.title() for word in words)
+    key = key[0].lower() + key[1:]
     return key
 
 
@@ -60,28 +67,28 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+def handle_call_action(action: str, username: str, friend: str):
+    if friend not in friends.get(username, []):
+        return ActionResponse(message=f"{username}, I can't find this person in your contacts.")
+    return ActionResponse(message=f"🤙 Calling {friend} ...")
 
 
 def handle_reminder_action(action: str):
     # Write your code below
     ...
-    return "🔔 I can't even remember my own stuff!"
+    return ActionResponse(message="🔔 Alright, I will remind you!")
 
 
 def handle_timer_action(action: str):
     # Write your code below
     ...
-    return "⏰ I don't know how to read the clock!"
+    return ActionResponse(message="⏰ Alright, the timer is set!")
 
 
 def handle_unknown_action(action: str):
     # Write your code below
     ...
-    return "🤬 #$!@"
+    return ActionResponse(message="👀 Sorry , but I can't help with that!")
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
@@ -89,20 +96,45 @@ def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     # tip: you have to use the response model above and also might change the signature
     #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
+    import json
+    import requests
 
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    # Helper function to query HuggingFace API
+    def query_nlp(query_string, model="pucpr-br/postagger-bio-english"):
+        data = json.dumps({"inputs": query_string})
+        res = requests.post(
+            url=f"https://api-inference.huggingface.co/models/{model}",
+            headers={"Authorization": f"Bearer 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"},
+            data=data,
+            timeout=30  # Necessary sometimes, if model is not cached on huggingface.co
+        )
+        return json.loads(res.content.decode("utf-8"))
+
+    # Catch unknown users trying to access Melli
+    if request.username not in friends.keys():
+        return ActionResponse(message=f"Hi {request.username}, I don't know you yet. But I would love to meet you!")
+
+    # Query NLP API to determine the desired action
+    nlp_response_words = query_nlp(request.action, model="pucpr-br/postagger-bio-english")
+    verbs = [_.get("word").lower() for _ in nlp_response_words if _["entity_group"] in ["VB", "VBP"]]
+    nouns = [_.get("word").lower() for _ in nlp_response_words if _["entity_group"] == "NN"]
+
+    # Query NLP API to get names mentioned
+    nlp_response_names = query_nlp(request.action, model="Davlan/bert-base-multilingual-cased-ner-hrl")
+    names = [_.get("word") for _ in nlp_response_names if _["entity_group"] == "PER"]
+
+    # Determine action handler
+    if "remind" in verbs:
+        response = handle_reminder_action(action=request.action)
+    elif "call" in verbs:
+        if len(names) != 1:
+            return handle_unknown_action(action=request.action)
+        response = handle_call_action(action=request.action, username=request.username, friend=names[0])
+    elif "timer" in nouns:
+        response = handle_timer_action(action=request.action)
+    else:
+        response = handle_unknown_action(action=request.action)
+    return response
 
 
 """
@@ -165,8 +197,21 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # fixme 🔨, at the moment we allow everybody to obtain a token
     # this is probably not very secure 🛡️ ...
     # tip: check the verify_password above
-    # Write your code below
-    ...
+    login_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password"
+        )
+
+    # Check username
+    user = get_user(form_data.username)
+    if not user:
+        raise login_exception
+
+    # Check password
+    if not verify_password(form_data.password, user.hashed_password):
+        raise login_exception
+
+    # Issue new token
     payload = {
         "sub": form_data.username,
         "exp": datetime.utcnow() + timedelta(minutes=30),
@@ -187,12 +232,25 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid authentication credentials",
-        headers={"WWW-Authenticate": "Bearer"},
+        headers={"WWW-Authenticate": "Bearer"}
     )
     # check if the token 🪙 is valid and return a user as specified by the tokens payload
     # otherwise raise the credentials_exception above
-    # Write your code below
-    ...
+
+    # Verify token
+    try:
+        payload = decode_jwt(token)
+    except:
+        raise credentials_exception
+    print(f"{payload}")
+
+    # Get user from db
+    username = payload.get("sub")
+    user = get_user(username)
+    if not user:
+        raise credentials_exception
+
+    return user
 
 
 @app.get("/task4/users/{username}/secret", summary="🤫", tags=["Task 4"])
@@ -201,10 +259,15 @@ async def read_user_secret(
 ):
     """Read a user's secret."""
     # uppps 🤭 maybe we should check if the requested secret actually belongs to the user
-    # Write your code below
-    ...
-    if user := get_user(username):
-        return user.secret
+
+    if username != current_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Don't spy on other user!",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    return current_user.secret
 
 
 """
