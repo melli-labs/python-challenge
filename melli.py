@@ -14,15 +14,16 @@ Task 1 - Warmup
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
 async def task1_greet(name: str, language: str = None) -> str:
     """Greet somebody in German, English or Spanish!"""
-    match language:
-      case 'de' | None:
+    if language in ('de', None):
         return f'Hallo {name}, ich bin Melli.'
-      case 'en':
+
+    if language == 'en':
         return f'Hello {name}, I am Melli.'
-      case 'es':
+
+    if language == 'es':
         return f'Hola {name}, soy Melli.'
-      case _:
-        return f'Hallo {name}, leider spreche ich nicht \'{language}\'!'
+
+    return f'Hallo {name}, leider spreche ich nicht \'{language}\'!'
 
 
 """
