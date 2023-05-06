@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 from melli import app
+import pytest_asyncio
 
 
 @pytest.fixture()
@@ -12,6 +13,7 @@ async def async_client():
 
 
 @pytest.mark.asyncio
+@pytest_asyncio.fixture(scope='session')
 async def test_task1(async_client):
     response = await async_client.get("/task1/greet/Jasmin")
     assert response.status_code == 200
@@ -39,6 +41,7 @@ def test_task1_success_message():
 
 
 @pytest.mark.asyncio
+@pytest_asyncio.fixture
 async def test_task2(async_client):
     data = {"company_name": "Melli", "is_future_unicorn": True}
 
@@ -60,6 +63,7 @@ def test_task2_success_message():
 
 @pytest.mark.asyncio
 class TestTask3:
+    @pytest_asyncio.fixture
     async def test_call_friend(self, async_client):
         response = await async_client.post(
             "/task3/action",
@@ -103,6 +107,7 @@ class TestTask3:
             "message": "🤙 Calling Ben ...",
         }
 
+    @pytest_asyncio.fixture
     async def test_call_unknown(self, async_client):
         response = await async_client.post(
             "/task3/action",
@@ -113,6 +118,7 @@ class TestTask3:
             "message": "Stefan, I can't find this person in your contacts.",
         }
 
+    @pytest_asyncio.fixture
     async def test_reminder(self, async_client):
         response = await async_client.post(
             "/task3/action",
@@ -126,6 +132,7 @@ class TestTask3:
             "message": "🔔 Alright, I will remind you!",
         }
 
+    @pytest_asyncio.fixture
     async def test_timer(self, async_client):
         response = await async_client.post(
             "/task3/action",
@@ -136,6 +143,7 @@ class TestTask3:
             "message": "⏰ Alright, the timer is set!",
         }
 
+    @pytest_asyncio.fixture
     async def test_unknown_action(self, async_client):
         response = await async_client.post(
             "/task3/action",
@@ -146,6 +154,7 @@ class TestTask3:
             "message": "👀 Sorry , but I can't help with that!",
         }
 
+    @pytest_asyncio.fixture
     async def test_unknown_user(self, async_client):
         response = await async_client.post(
             "/task3/action",
@@ -184,14 +193,14 @@ def test_task3_success_message():
 class TestTask4:
     stefan = {"username": "stefan", "password": "decent-espresso-by-john-buckmann"}
     felix = {"username": "felix", "password": "elm>javascript"}
-
-    @pytest.fixture()
+ 
+    @pytest_asyncio.fixture
     async def token_stefan(self, async_client):
         response = await async_client.post("/task4/token", data=self.stefan)
         assert response.status_code == 200
         return response.json()
-
-    @pytest.fixture()
+ 
+    @pytest_asyncio.fixture
     async def token_felix(self, async_client):
         response = await async_client.post("/task4/token", data=self.felix)
         assert response.status_code == 200
