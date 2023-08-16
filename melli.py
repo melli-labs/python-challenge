@@ -12,12 +12,20 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str) -> str:
+async def task1_greet(name: str, language: str = "en") -> str:
     """Greet somebody in German, English or Spanish!"""
-    # Write your code below
-    ...
-    return f"Hello {name}, I am Melli."
+    supported_languages = ["de", "en", "es"]
+    
+    if language not in supported_languages:
+        return "Sorry, we don't speak that language."
 
+    greetings = {
+        "de": f"Hallo {name}, ich bin Melli.",
+        "en": f"Hello {name}, I am Melli.",
+        "es": f"Hola {name}, soy Melli.",
+    }
+
+    return greetings[language]
 
 """
 Task 2 - snake_case to cameCase
@@ -28,16 +36,16 @@ from typing import Any
 
 def camelize(key: str):
     """Takes string in snake_case format returns camelCase formatted version."""
-    # Write your code below
-    ...
+    words = key.split('_')
+    key =  words[0] + ''.join(word.capitalize() for word in words[1:])
     return key
 
 
 @app.post("/task2/camelize", tags=["Task 2"], summary="🐍➡️🐪")
 async def task2_camelize(data: dict[str, Any]) -> dict[str, Any]:
-    """Takes a JSON object and transfroms all keys from snake_case to camelCase."""
-    return {camelize(key): value for key, value in data.items()}
-
+    """Takes a JSON object and transforms all keys from snake_case to camelCase."""
+    camelized_data = {camelize(key): value for key, value in data.items()}
+    return camelized_data
 
 """
 Task 3 - Handle User Actions
@@ -60,49 +68,32 @@ class ActionResponse(BaseModel):
     message: str
 
 
-def handle_call_action(action: str):
-    # Write your code below
-    ...
-    return "🤙 Why don't you call them yourself!"
+# Action handlers
+def handle_call_action(username: str):
+    return f"📞 Sure, let me help you connect with your loved ones, {username}!"
 
+def handle_reminder_action(username: str):
+    return f"🔔 Absolutely, I'll remind you to have some tea with your friend, {username}!"
 
-def handle_reminder_action(action: str):
-    # Write your code below
-    ...
-    return "🔔 I can't even remember my own stuff!"
+def handle_timer_action(username: str):
+    return f"⏰ Don't worry, I'll help you keep track of time for that tea with your friend, {username}!"
 
-
-def handle_timer_action(action: str):
-    # Write your code below
-    ...
-    return "⏰ I don't know how to read the clock!"
-
-
-def handle_unknown_action(action: str):
-    # Write your code below
-    ...
-    return "🤬 #$!@"
+def handle_unknown_action():
+    return "🤔 I'm sorry, I didn't quite catch that. Could you please clarify?"
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
-    # tip: you have to use the response model above and also might change the signature
-    #      of the action handlers
-    # Write your code below
-    ...
-    from random import choice
-
-    # There must be a better way!
-    handler = choice(
-        [
-            handle_call_action,
-            handle_reminder_action,
-            handle_timer_action,
-            handle_unknown_action,
-        ]
-    )
-    return handler(request.action)
+    action = request.action.lower()
+    if "call" in action:
+        return handle_call_action(request.username)
+    elif "reminder" in action:
+        return handle_reminder_action(request.username)
+    elif "timer" in action:
+        return handle_timer_action(request.username)
+    else:
+        return handle_unknown_action()
 
 
 """
