@@ -89,8 +89,6 @@ def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
     users = []
     users.append(friends.keys())
-    users.extend(friends.values[0])
-    users.extend(friends.values[1])
     if username not in users:
     	return f"Hi {username}, I don't know you yet. But I would love to meet you!"
     
