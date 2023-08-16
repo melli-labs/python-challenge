@@ -12,7 +12,7 @@ Task 1 - Warmup
 
 
 @app.get("/task1/greet/{name}", tags=["Task 1"], summary="👋🇩🇪🇬🇧🇪🇸")
-async def task1_greet(name: str, language: str = "en") -> str:
+async def task1_greet(name: str, language: str = "de") -> str:
     """Greet somebody in German, English or Spanish!"""
     supported_languages = ["de", "en", "es"]
     
@@ -69,29 +69,38 @@ class ActionResponse(BaseModel):
 
 
 # Action handlers
-def handle_call_action(username: str):
-    return f"📞 Sure, let me help you connect with your loved ones, {username}!"
+def handle_call_action(username: str, action:str):
+    if action.split()[-1][:-1] not in friends[username]:
+    	return "{username}, I can't find this person in your contacts."
+    return f"🤙 Calling {username} ..."
 
-def handle_reminder_action(username: str):
-    return f"🔔 Absolutely, I'll remind you to have some tea with your friend, {username}!"
+def handle_reminder_action(username: str, action:str):
+    return f"🔔 Alright, I will remind you!"
 
-def handle_timer_action(username: str):
-    return f"⏰ Don't worry, I'll help you keep track of time for that tea with your friend, {username}!"
+def handle_timer_action(username: str, action:str):
+    return f"⏰ Alright, the timer is set!"
 
 def handle_unknown_action():
-    return "🤔 I'm sorry, I didn't quite catch that. Could you please clarify?"
+    return "👀 Sorry , but I can't help with that!"
 
 
 @app.post("/task3/action", tags=["Task 3"], summary="🤌")
 def task3_action(request: ActionRequest):
     """Accepts an action request, recognizes its intent and forwards it to the corresponding action handler."""
+    users = []
+    users.append(friends.keys())
+    users.extend(friends.values[0])
+    users.extend(friends.values[1])
+    if username not in users:
+    	return f"Hi {username}, I don't know you yet. But I would love to meet you!"
+    
     action = request.action.lower()
-    if "call" in action:
-        return handle_call_action(request.username)
-    elif "reminder" in action:
-        return handle_reminder_action(request.username)
-    elif "timer" in action:
-        return handle_timer_action(request.username)
+    if "call" in action.lower():
+        return handle_call_action(request.username, request.action)
+    elif "remind" in action.lower():
+        return handle_reminder_action(request.username, request.action)
+    elif "timer" in action.lower():
+        return handle_timer_action(request.username, request.action)
     else:
         return handle_unknown_action()
 
