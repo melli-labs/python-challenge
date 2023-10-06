@@ -1,0 +1,2 @@
+import sys; exec('try:\n    import future_fstrings\nexcept ImportError:\n    pass\nelse:\n    future_fstrings.register()\n')
+

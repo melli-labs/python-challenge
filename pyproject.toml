@@ -27,5 +27,5 @@ isort = "^5.10.1"
 markers = ["bonus: optional task applicants don't have to solve"]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
