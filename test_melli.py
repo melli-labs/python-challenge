@@ -1,12 +1,12 @@
 import pytest
-from httpx import AsyncClient
+import httpx
+# from httpx import AsyncClient
 
 from melli import app
 
-
 @pytest.fixture()
 async def async_client():
-    async_client = AsyncClient(app=app, base_url="http://test")
+    async_client = httpx.AsyncClient(app=app, base_url="http://test")
     yield async_client
     await async_client.aclose()
 
@@ -48,7 +48,6 @@ async def test_task2(async_client):
         "companyName": "Melli",
         "isFutureUnicorn": True,
     }
-
 
 @pytest.mark.depends(on=["test_task2"])
 def test_task2_success_message():

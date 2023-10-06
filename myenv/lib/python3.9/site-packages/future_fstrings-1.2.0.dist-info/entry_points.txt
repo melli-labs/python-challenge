@@ -1,0 +1,3 @@
+[console_scripts]
+future-fstrings-show = future_fstrings:main
+
