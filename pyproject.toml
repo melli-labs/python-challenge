@@ -5,26 +5,28 @@ description = "Fix this project and get a job at melli.com!"
 authors = ["Melli <melli@melli.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-fastapi = "^0.70.1"
-uvicorn = { extras = ["standard"], version = "^0.16.0" }
-pydantic = "^1.8.2"
-python-multipart = "^0.0.5"
+python = "^3.12"
+fastapi = "^0.109.0"
+uvicorn = { extras = ["standard"], version = "^0.27.0" }
+pydantic = "^2.6.0"
+python-multipart = "^0.0.9"
 python-jose = { extras = ["cryptography"], version = "^3.3.0" }
 passlib = { extras = ["bcrypt"], version = "^1.7.4" }
-tomlkit = "^0.7.2"
+bcrypt = "3.2.2"
+tomlkit = "^0.12.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
-pytest-asyncio = "^0.16.0"
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.0"
 pytest-depends = "^1.0.1"
-httpx = "^0.23.0"
-pylint = "^2.12.2"
-black = "^21.12b0"
-isort = "^5.10.1"
+httpx = "^0.26.0"
+pylint = "^3.0.0"
+black = "^24.1.0"
+isort = "^5.13.0"
 
 [tool.pytest.ini_options]
 markers = ["bonus: optional task applicants don't have to solve"]
+asyncio_mode = "auto"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
